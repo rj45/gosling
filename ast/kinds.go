@@ -8,12 +8,14 @@ const (
 
 	Literal
 	BinaryExpr
+	UnaryExpr
 )
 
 var kindNames = []string{
 	IllegalNode: "IllegalNode",
 	Literal:     "Literal",
 	BinaryExpr:  "BinaryExpr",
+	UnaryExpr:   "UnaryExpr",
 }
 
 func (k Kind) String() string {
@@ -30,5 +32,5 @@ func (k Kind) IsTerminal() bool {
 
 // UsesToken returns true if the node uses a token for its value
 func (k Kind) UsesToken() bool {
-	return k == BinaryExpr
+	return k == BinaryExpr || k == UnaryExpr
 }

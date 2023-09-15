@@ -30,6 +30,8 @@ type CodeGen interface {
 	Sub()
 	Mul()
 	Div()
+
+	Neg()
 }
 
 func gencode(ast *ast.AST, gen CodeGen) {
@@ -56,6 +58,9 @@ func genExpr(a *ast.AST, node ast.NodeID, gen CodeGen) {
 		case token.Div:
 			gen.Div()
 		}
+	case ast.UnaryExpr:
+		genExpr(a, a.Child(node, ast.UnaryExprExpr), gen)
+		gen.Neg()
 	case ast.Literal:
 		gen.LoadInt(a.NodeString(node))
 	default:
@@ -105,6 +110,10 @@ func (g *codegen) Mul() {
 
 func (g *codegen) Div() {
 	fmt.Println("  sdiv x0, x1, x0")
+}
+
+func (g *codegen) Neg() {
+	fmt.Println("  neg x0, x0")
 }
 
 func (g *codegen) Epilogue() {

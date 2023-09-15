@@ -45,6 +45,26 @@ func TestParseExpr(t *testing.T) {
 				BinaryExpr("/", Literal("4"), Literal("5")),
 			)
 		`},
+		{"-5", `UnaryExpr("-", Literal("5"))`},
+		{"-5+6", `
+			BinaryExpr("+",
+				UnaryExpr("-", Literal("5")),
+				Literal("6"),
+			)
+		`},
+		{"-5*6", `
+			BinaryExpr("*",
+				UnaryExpr("-", Literal("5")),
+				Literal("6"),
+			)
+		`},
+		{"5-+6", `BinaryExpr("-", Literal("5"), Literal("6"))`},
+		{"5-+-+6", `
+			BinaryExpr("-",
+				Literal("5"),
+				UnaryExpr("-", Literal("6")),
+			)
+		`},
 	}
 
 	for _, tt := range tests {

@@ -19,17 +19,32 @@ func (p *Parser) expr() ast.NodeID {
 	}
 }
 
-// mul = primary ("*" primary | "/" primary)*
+// mul = unary ("*" unary | "/" unary)*
 func (p *Parser) mul() ast.NodeID {
-	node := p.primary()
+	node := p.unary()
 	for {
 		switch p.tok.Kind() {
 		case token.Mul, token.Div:
-			node = p.ast.AddNode(ast.BinaryExpr, p.next(), node, p.primary())
+			node = p.ast.AddNode(ast.BinaryExpr, p.next(), node, p.unary())
 		default:
 			return node
 		}
 
+	}
+}
+
+// unary = ("+" | "-") unary
+//
+//	| primary
+func (p *Parser) unary() ast.NodeID {
+	switch p.tok.Kind() {
+	case token.Add:
+		p.next()
+		return p.unary()
+	case token.Sub:
+		return p.ast.AddNode(ast.UnaryExpr, p.next(), p.unary())
+	default:
+		return p.primary()
 	}
 }
 
