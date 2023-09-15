@@ -8,20 +8,6 @@ import (
 // 25 bits offset (32 MB)
 type Token uint32
 
-type Kind uint8
-
-const (
-	Illegal Kind = iota
-	EOF
-
-	Int
-
-	Add
-	Sub
-
-	NumTokens
-)
-
 // Kind returns the TokenKind
 func (t Token) Kind() Kind {
 	// least significant 7 bits
@@ -52,7 +38,7 @@ func (t Token) EndOfToken(src []byte) int {
 	case Illegal, EOF:
 		// zero length
 
-	case Add, Sub:
+	case Add, Sub, Mul, Div, LParen, RParen:
 		eot++ // For single character tokens (like '+', '-', etc.)
 	default:
 		panic("todo: handle other tokens")
@@ -101,11 +87,19 @@ skip:
 
 	switch ch := src[pos]; {
 	case ch == '+':
-		// Handle other cases like '+=', '++' ...
 		return NewToken(Add, pos)
 	case ch == '-':
-		// Handle other cases like '-=', '--' ...
 		return NewToken(Sub, pos)
+	case ch == '*':
+		return NewToken(Mul, pos)
+	case ch == '/':
+		return NewToken(Div, pos)
+
+	case ch == '(':
+		return NewToken(LParen, pos)
+	case ch == ')':
+		return NewToken(RParen, pos)
+
 	case ch >= '0' && ch <= '9':
 		start := pos
 		for pos < len(src) && src[pos] >= '0' && src[pos] <= '9' {
@@ -129,16 +123,4 @@ func (t Token) StringFrom(src []byte) string {
 
 func (t Token) String() string {
 	return t.Kind().String() + "(" + strconv.Itoa(t.Offset()) + ")"
-}
-
-var kindStrs = [...]string{
-	Illegal: "Illegal",
-	EOF:     "EOF",
-	Int:     "Int",
-	Add:     "Add",
-	Sub:     "Sub",
-}
-
-func (k Kind) String() string {
-	return kindStrs[k]
 }

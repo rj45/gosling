@@ -4,49 +4,36 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/token"
 )
-
-type CodeGen interface {
-	GenLoadInt(string)
-	GenAddInt(string)
-	GenSubInt(string)
-}
 
 type Parser struct {
 	src []byte
 	tok token.Token
-	gen CodeGen
+	ast *ast.AST
 }
 
-func New(src []byte, gen CodeGen) *Parser {
-	return &Parser{src: src, gen: gen}
+func New(src []byte) *Parser {
+	return &Parser{src: src, ast: ast.New(src)}
 }
 
-func (p *Parser) Parse() {
+func (p *Parser) Parse() *ast.AST {
 	p.next()
 
-	tok := p.expect(token.Int)
-	p.gen.GenLoadInt(tok.StringFrom(p.src))
+	p.expr()
 
-	for p.tok.Kind() != token.EOF {
-		switch p.tok.Kind() {
-		case token.Add:
-			p.next()
-			tok = p.expect(token.Int)
-			p.gen.GenAddInt(tok.StringFrom(p.src))
-		case token.Sub:
-			p.next()
-			tok = p.expect(token.Int)
-			p.gen.GenSubInt(tok.StringFrom(p.src))
-		default:
-			p.error("expected + or -")
-		}
-	}
+	return p.ast
 }
 
-func (p *Parser) next() {
+func (p *Parser) next() token.Token {
+	tok := p.tok
 	p.tok = p.tok.Next(p.src)
+	return tok
+}
+
+func (p *Parser) node(nk ast.Kind, tk token.Kind, children ...ast.NodeID) ast.NodeID {
+	return p.ast.AddNode(nk, p.expect(tk), children...)
 }
 
 // expect errors if the token is not of the expected kind, otherwise it returns
