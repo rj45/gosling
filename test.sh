@@ -2,11 +2,13 @@
 
 # script from https://github.com/rui314/chibicc/blob/master/test.sh
 
+go build -o gosling gosling.go
+
 assert() {
   expected="$1"
   input="$2"
 
-  go run gosling.go "$input" > test.s || exit
+  ./gosling "$input" > test.s || exit
   clang -o test test.s
   ./test
   actual="$?"
@@ -21,5 +23,6 @@ assert() {
 
 assert 0 0
 assert 42 42
+assert 21 "5 + 20 - 4"
 
 echo OK
