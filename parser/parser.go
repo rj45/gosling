@@ -1,6 +1,11 @@
 package parser
 
-import "github.com/rj45/gosling/token"
+import (
+	"fmt"
+	"os"
+
+	"github.com/rj45/gosling/token"
+)
 
 type CodeGen interface {
 	GenLoadInt(string)
@@ -35,7 +40,7 @@ func (p *Parser) Parse() {
 			tok = p.expect(token.Int)
 			p.gen.GenSubInt(tok.StringFrom(p.src))
 		default:
-			panic("invalid token: " + p.tok.String())
+			p.error("expected + or -")
 		}
 	}
 }
@@ -44,13 +49,23 @@ func (p *Parser) next() {
 	p.tok = p.tok.Next(p.src)
 }
 
-// expect panics if the token is not of the expected kind, otherwise it returns
+// expect errors if the token is not of the expected kind, otherwise it returns
 // the next token and the token text.
 func (p *Parser) expect(kind token.Kind) token.Token {
 	tok := p.tok
 	if p.tok.Kind() != kind {
-		panic("expected " + kind.String() + " token")
+		p.error("expected %s", kind.String())
 	}
 	p.next()
 	return tok
+}
+
+// error prints the source code and a pointer to the token that caused the error.
+func (p *Parser) error(msg string, args ...interface{}) {
+	// todo: print the line number and column number instead of offset
+	fmt.Fprintf(os.Stderr, "Error at offset %d:\n", p.tok.Offset())
+	fmt.Fprintf(os.Stderr, "%s\n", string(p.src))
+	fmt.Fprintf(os.Stderr, "%*s^  ", p.tok.Offset(), "")
+	fmt.Fprintf(os.Stderr, msg+"\n", args...)
+	os.Exit(1)
 }
