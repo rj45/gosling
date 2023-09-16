@@ -6,11 +6,15 @@ import (
 )
 
 type Assembly interface {
+	WordSize() int
+
 	Prologue()
 	Epilogue()
 
 	Push()
 	Pop()
+	LoadLocal(int)
+	StoreLocal(int)
 
 	LoadInt(string)
 
@@ -59,8 +63,28 @@ func (g *CodeGen) genStmt(node ast.NodeID) {
 	switch g.ast.Kind(node) {
 	case ast.ExprStmt:
 		g.genExpr(g.ast.Child(node, ast.ExprStmtExpr))
+	case ast.AssignStmt:
+		g.genAssignStmt(node)
 	default:
 		panic("unknown stmt kind")
+	}
+}
+
+func (g *CodeGen) genAssignStmt(node ast.NodeID) {
+	g.genExpr(g.ast.Child(node, ast.AssignStmtRHS))
+	g.asm.StoreLocal(g.localOffset(g.ast.Child(node, ast.AssignStmtLHS)))
+}
+
+func (g *CodeGen) localOffset(node ast.NodeID) int {
+	switch g.ast.Kind(node) {
+	case ast.Name:
+		name := g.ast.NodeBytes(node)
+		if len(name) != 1 || name[0] < 'a' || name[0] > 'z' {
+			panic("invalid name")
+		}
+		return int(name[0]-'a'+1) * g.asm.WordSize()
+	default:
+		panic("unknown addr kind")
 	}
 }
 
@@ -99,6 +123,8 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 		g.asm.Neg()
 	case ast.Literal:
 		g.asm.LoadInt(g.ast.NodeString(node))
+	case ast.Name:
+		g.asm.LoadLocal(g.localOffset(node))
 	default:
 		panic("unknown expr kind")
 	}

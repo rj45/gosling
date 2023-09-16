@@ -7,7 +7,10 @@ const (
 	EOF
 	Semicolon
 
+	Ident
 	Int
+
+	Assign
 
 	Add
 	Sub
@@ -31,7 +34,9 @@ var kindStrs = [...]string{
 	Illegal:   "Illegal",
 	EOF:       "EOF",
 	Semicolon: "Semicolon",
+	Ident:     "Ident",
 	Int:       "Int",
+	Assign:    "Assign",
 	Add:       "Add",
 	Sub:       "Sub",
 	Mul:       "Mul",

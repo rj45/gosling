@@ -11,6 +11,13 @@ func (g *Assembly) Prologue() {
 	fmt.Println(".global _main")
 	fmt.Println(".align 2")
 	fmt.Println("_main:")
+	fmt.Println("  stp x29, x30, [sp, #-16]!")
+	fmt.Println("  mov x29, sp")
+	fmt.Println("  sub sp, sp, #" + fmt.Sprintf("%d", ('z'-'a'+1)*g.WordSize()))
+}
+
+func (g *Assembly) WordSize() int {
+	return 8
 }
 
 func (g *Assembly) Push() {
@@ -23,6 +30,14 @@ func (g *Assembly) Pop() {
 	g.depth--
 	// note: stack is 16-byte aligned, so this is wasteful, we will fix that later
 	fmt.Println("  ldr x1, [sp], #16")
+}
+
+func (g *Assembly) LoadLocal(offset int) {
+	fmt.Printf("  ldr x0, [x29, #%d]\n", offset)
+}
+
+func (g *Assembly) StoreLocal(offset int) {
+	fmt.Printf("  str x0, [x29, #%d]\n", offset)
 }
 
 func (g *Assembly) LoadInt(lit string) {
@@ -80,6 +95,8 @@ func (g *Assembly) Ge() {
 }
 
 func (g *Assembly) Epilogue() {
+	fmt.Println("  mov sp, x29")
+	fmt.Println("  ldp x29, x30, [sp], #16")
 	fmt.Println("  mov x16, #1") // syscall number for exit()
 	fmt.Println("  svc #0")      // syscall
 	fmt.Println("  ret")

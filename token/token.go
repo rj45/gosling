@@ -34,11 +34,15 @@ func (t Token) EndOfToken(src []byte) int {
 		for eot < len(src) && src[eot] >= '0' && src[eot] <= '9' {
 			eot++
 		}
+	case Ident:
+		for eot < len(src) && (src[eot] >= 'a' && src[eot] <= 'z' || src[eot] >= 'A' && src[eot] <= 'Z' || src[eot] >= '0' && src[eot] <= '9' || src[eot] == '_') {
+			eot++
+		}
 
 	case Illegal, EOF:
 		// zero length
 
-	case Add, Sub, Mul, Div, LParen, RParen, Lt, Gt, Semicolon:
+	case Add, Sub, Mul, Div, LParen, RParen, Lt, Gt, Semicolon, Assign:
 		eot++ // For single character tokens (like '+', '-', etc.)
 	case Eq, Ne, Le, Ge:
 		eot += 2 // For double character tokens (like '==', '!=', etc.)
@@ -118,6 +122,7 @@ skip:
 		if pos+1 < len(src) && src[pos+1] == '=' {
 			return NewToken(Eq, pos)
 		}
+		return NewToken(Assign, pos)
 	case ch == '!':
 		if pos+1 < len(src) && src[pos+1] == '=' {
 			return NewToken(Ne, pos)
@@ -134,11 +139,9 @@ skip:
 		return NewToken(Gt, pos)
 
 	case ch >= '0' && ch <= '9':
-		start := pos
-		for pos < len(src) && src[pos] >= '0' && src[pos] <= '9' {
-			pos++
-		}
-		return NewToken(Int, start)
+		return NewToken(Int, pos)
+	case ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == '_':
+		return NewToken(Ident, pos)
 	}
 	return NewToken(Illegal, pos)
 }

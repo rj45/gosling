@@ -38,6 +38,39 @@ func TestParseExprStmt(t *testing.T) {
 	}
 }
 
+func TestParseAssignStmt(t *testing.T) {
+	tests := []struct {
+		src      string
+		expected string
+	}{
+		{"foo=42", `AssignStmt(Name("foo"), Literal("42"))`},
+		{"foo=1+2", `AssignStmt(
+			Name("foo"),
+			BinaryExpr("+", Literal("1"), Literal("2")),
+		)`},
+		{"foo=1-2", `AssignStmt(
+			Name("foo"),
+			BinaryExpr("-", Literal("1"), Literal("2")),
+		)`},
+	}
+
+	for _, tt := range tests {
+		parser := parser.New([]byte(tt.src))
+		a := parser.Parse()
+
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+
+		if trim(a.StringOf(stmt)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
+		}
+	}
+}
+
 func TestParseStmtList(t *testing.T) {
 	tests := []struct {
 		src      string

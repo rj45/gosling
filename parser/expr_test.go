@@ -8,12 +8,38 @@ import (
 	"github.com/rj45/gosling/parser"
 )
 
-func TestParseAddExpr(t *testing.T) {
+func TestParsePrimaryExpr(t *testing.T) {
 	tests := []struct {
 		src      string
 		expected string
 	}{
 		{"42", `Literal("42")`},
+		{"foo", `Name("foo")`},
+	}
+
+	for _, tt := range tests {
+		parser := parser.New([]byte(tt.src))
+		a := parser.Parse()
+
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+		expr := a.Child(stmt, ast.ExprStmtExpr)
+
+		if trim(a.StringOf(expr)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(expr))
+		}
+	}
+}
+
+func TestParseAddExpr(t *testing.T) {
+	tests := []struct {
+		src      string
+		expected string
+	}{
 		{"1+2", `BinaryExpr("+", Literal("1"), Literal("2"))`},
 		{"1-2", `BinaryExpr("-", Literal("1"), Literal("2"))`},
 	}

@@ -91,6 +91,8 @@ func (p *Parser) primary() ast.NodeID {
 		return expr
 	case token.Int:
 		return p.node(ast.Literal, token.Int)
+	case token.Ident:
+		return p.node(ast.Name, token.Ident)
 	default:
 		p.error("expected int")
 		return ast.InvalidNode
