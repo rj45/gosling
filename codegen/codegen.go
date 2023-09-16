@@ -20,6 +20,13 @@ type Assembly interface {
 	Div()
 
 	Neg()
+
+	Eq()
+	Ne()
+	Lt()
+	Le()
+	Gt()
+	Ge()
 }
 
 type CodeGen struct {
@@ -57,6 +64,18 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 			g.asm.Mul()
 		case token.Div:
 			g.asm.Div()
+		case token.Eq:
+			g.asm.Eq()
+		case token.Ne:
+			g.asm.Ne()
+		case token.Lt:
+			g.asm.Lt()
+		case token.Le:
+			g.asm.Le()
+		case token.Gt:
+			g.asm.Gt()
+		case token.Ge:
+			g.asm.Ge()
 		}
 	case ast.UnaryExpr:
 		g.genExpr(g.ast.Child(node, ast.UnaryExprExpr))

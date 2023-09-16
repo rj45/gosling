@@ -13,6 +13,13 @@ const (
 	Mul
 	Div
 
+	Eq
+	Ne
+	Lt
+	Le
+	Gt
+	Ge
+
 	LParen
 	RParen
 
@@ -27,6 +34,12 @@ var kindStrs = [...]string{
 	Sub:     "Sub",
 	Mul:     "Mul",
 	Div:     "Div",
+	Eq:      "Eq",
+	Ne:      "Ne",
+	Lt:      "Lt",
+	Le:      "Le",
+	Gt:      "Gt",
+	Ge:      "Ge",
 	LParen:  "LParen",
 	RParen:  "RParen",
 }

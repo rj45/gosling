@@ -49,6 +49,36 @@ func (g *Assembly) Neg() {
 	fmt.Println("  neg x0, x0")
 }
 
+func (g *Assembly) Eq() {
+	fmt.Println("  cmp x1, x0")
+	fmt.Println("  cset x0, eq")
+}
+
+func (g *Assembly) Ne() {
+	fmt.Println("  cmp x1, x0")
+	fmt.Println("  cset x0, ne")
+}
+
+func (g *Assembly) Lt() {
+	fmt.Println("  cmp x1, x0")
+	fmt.Println("  cset x0, lt")
+}
+
+func (g *Assembly) Le() {
+	fmt.Println("  cmp x1, x0")
+	fmt.Println("  cset x0, le")
+}
+
+func (g *Assembly) Gt() {
+	fmt.Println("  cmp x1, x0")
+	fmt.Println("  cset x0, gt")
+}
+
+func (g *Assembly) Ge() {
+	fmt.Println("  cmp x1, x0")
+	fmt.Println("  cset x0, ge")
+}
+
 func (g *Assembly) Epilogue() {
 	fmt.Println("  mov x16, #1") // syscall number for exit()
 	fmt.Println("  svc #0")      // syscall

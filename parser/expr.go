@@ -5,8 +5,41 @@ import (
 	"github.com/rj45/gosling/token"
 )
 
-// expr = mul ("+" mul | "-" mul)*
+// expr = equality
 func (p *Parser) expr() ast.NodeID {
+	return p.equality()
+}
+
+// equality = comparison ("==" comparison | "!=" comparison)*
+func (p *Parser) equality() ast.NodeID {
+	node := p.comparison()
+
+	for {
+		switch p.tok.Kind() {
+		case token.Eq, token.Ne:
+			node = p.ast.AddNode(ast.BinaryExpr, p.next(), node, p.comparison())
+		default:
+			return node
+		}
+	}
+}
+
+// comparison = add ("<" add | "<=" add | ">" add | ">=" add)*
+func (p *Parser) comparison() ast.NodeID {
+	node := p.add()
+
+	for {
+		switch p.tok.Kind() {
+		case token.Lt, token.Le, token.Gt, token.Ge:
+			node = p.ast.AddNode(ast.BinaryExpr, p.next(), node, p.add())
+		default:
+			return node
+		}
+	}
+}
+
+// add = mul ("+" mul | "-" mul)*
+func (p *Parser) add() ast.NodeID {
 	node := p.mul()
 
 	for {

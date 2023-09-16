@@ -38,8 +38,10 @@ func (t Token) EndOfToken(src []byte) int {
 	case Illegal, EOF:
 		// zero length
 
-	case Add, Sub, Mul, Div, LParen, RParen:
+	case Add, Sub, Mul, Div, LParen, RParen, Lt, Gt:
 		eot++ // For single character tokens (like '+', '-', etc.)
+	case Eq, Ne, Le, Ge:
+		eot += 2 // For double character tokens (like '==', '!=', etc.)
 	default:
 		panic("todo: handle other tokens")
 	}
@@ -100,15 +102,33 @@ skip:
 	case ch == ')':
 		return NewToken(RParen, pos)
 
+	case ch == '=':
+		if pos+1 < len(src) && src[pos+1] == '=' {
+			return NewToken(Eq, pos)
+		}
+	case ch == '!':
+		if pos+1 < len(src) && src[pos+1] == '=' {
+			return NewToken(Ne, pos)
+		}
+	case ch == '<':
+		if pos+1 < len(src) && src[pos+1] == '=' {
+			return NewToken(Le, pos)
+		}
+		return NewToken(Lt, pos)
+	case ch == '>':
+		if pos+1 < len(src) && src[pos+1] == '=' {
+			return NewToken(Ge, pos)
+		}
+		return NewToken(Gt, pos)
+
 	case ch >= '0' && ch <= '9':
 		start := pos
 		for pos < len(src) && src[pos] >= '0' && src[pos] <= '9' {
 			pos++
 		}
 		return NewToken(Int, start)
-	default:
-		return NewToken(Illegal, pos)
 	}
+	return NewToken(Illegal, pos)
 }
 
 // Bytes returns a cheap byte slice of the token text
