@@ -21,7 +21,7 @@ func New(src []byte) *Parser {
 func (p *Parser) Parse() *ast.AST {
 	p.next()
 
-	p.expr()
+	p.stmtList()
 
 	return p.ast
 }

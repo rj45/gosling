@@ -7,4 +7,9 @@ const (
 
 	// UnaryExpr has Expr child
 	UnaryExprExpr = 0
+
+	// StmtList has a list of statements
+
+	// ExprStmt has Expr child
+	ExprStmtExpr = 0
 )

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/parser"
 )
 
@@ -19,10 +20,18 @@ func TestParseAddExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte(tt.src))
-		ast := parser.Parse()
+		a := parser.Parse()
 
-		if trim(ast.String()) != trim(tt.expected) {
-			t.Errorf("Expected: %s\nBut got: %s", tt.expected, ast.String())
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+		expr := a.Child(stmt, ast.ExprStmtExpr)
+
+		if trim(a.StringOf(expr)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(expr))
 		}
 	}
 }
@@ -66,10 +75,18 @@ func TestParseMulExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte(tt.src))
-		ast := parser.Parse()
+		a := parser.Parse()
 
-		if trim(ast.String()) != trim(tt.expected) {
-			t.Errorf("Expected: %s\nBut got: %s", tt.expected, ast.String())
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+		expr := a.Child(stmt, ast.ExprStmtExpr)
+
+		if trim(a.StringOf(expr)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(expr))
 		}
 	}
 }
@@ -103,10 +120,18 @@ func TestParseUrnaryExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte(tt.src))
-		ast := parser.Parse()
+		a := parser.Parse()
 
-		if trim(ast.String()) != trim(tt.expected) {
-			t.Errorf("Expected: %s\nBut got: %s", tt.expected, ast.String())
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+		expr := a.Child(stmt, ast.ExprStmtExpr)
+
+		if trim(a.StringOf(expr)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(expr))
 		}
 	}
 }
@@ -126,10 +151,18 @@ func TestParseCompareExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte(tt.src))
-		ast := parser.Parse()
+		a := parser.Parse()
 
-		if trim(ast.String()) != trim(tt.expected) {
-			t.Errorf("Expected: %s\nBut got: %s", tt.expected, ast.String())
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+		expr := a.Child(stmt, ast.ExprStmtExpr)
+
+		if trim(a.StringOf(expr)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(expr))
 		}
 	}
 }

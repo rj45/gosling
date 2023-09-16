@@ -9,6 +9,9 @@ const (
 	Literal
 	BinaryExpr
 	UnaryExpr
+
+	StmtList
+	ExprStmt
 )
 
 var kindNames = []string{
@@ -16,6 +19,8 @@ var kindNames = []string{
 	Literal:     "Literal",
 	BinaryExpr:  "BinaryExpr",
 	UnaryExpr:   "UnaryExpr",
+	StmtList:    "StmtList",
+	ExprStmt:    "ExprStmt",
 }
 
 func (k Kind) String() string {

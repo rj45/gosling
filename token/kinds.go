@@ -5,6 +5,7 @@ type Kind uint8
 const (
 	Illegal Kind = iota
 	EOF
+	Semicolon
 
 	Int
 
@@ -27,21 +28,22 @@ const (
 )
 
 var kindStrs = [...]string{
-	Illegal: "Illegal",
-	EOF:     "EOF",
-	Int:     "Int",
-	Add:     "Add",
-	Sub:     "Sub",
-	Mul:     "Mul",
-	Div:     "Div",
-	Eq:      "Eq",
-	Ne:      "Ne",
-	Lt:      "Lt",
-	Le:      "Le",
-	Gt:      "Gt",
-	Ge:      "Ge",
-	LParen:  "LParen",
-	RParen:  "RParen",
+	Illegal:   "Illegal",
+	EOF:       "EOF",
+	Semicolon: "Semicolon",
+	Int:       "Int",
+	Add:       "Add",
+	Sub:       "Sub",
+	Mul:       "Mul",
+	Div:       "Div",
+	Eq:        "Eq",
+	Ne:        "Ne",
+	Lt:        "Lt",
+	Le:        "Le",
+	Gt:        "Gt",
+	Ge:        "Ge",
+	LParen:    "LParen",
+	RParen:    "RParen",
 }
 
 func (k Kind) String() string {

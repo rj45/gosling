@@ -38,7 +38,7 @@ func (t Token) EndOfToken(src []byte) int {
 	case Illegal, EOF:
 		// zero length
 
-	case Add, Sub, Mul, Div, LParen, RParen, Lt, Gt:
+	case Add, Sub, Mul, Div, LParen, RParen, Lt, Gt, Semicolon:
 		eot++ // For single character tokens (like '+', '-', etc.)
 	case Eq, Ne, Le, Ge:
 		eot += 2 // For double character tokens (like '==', '!=', etc.)
@@ -49,15 +49,25 @@ func (t Token) EndOfToken(src []byte) int {
 	return eot
 }
 
+// nlsemi is a list of tokens that have the a following newline converted to a semicolon
+var nlsemi = [NumTokens]bool{
+	Int:    true,
+	RParen: true,
+}
+
 // Next returns the next Token in src relative to the current Token.
 func (t Token) Next(src []byte) Token {
-	pos := t.EndOfToken(src) // Set the start position for scanning the next token
+	pos := t.EndOfToken(src)   // Set the start position for scanning the next token
+	nlsemi := nlsemi[t.Kind()] // Whether or not to treat a newline as a semicolon
 
 	// Skip over whitespace and comments
 skip:
 	for pos < len(src) {
 		switch src[pos] {
 		case '\n':
+			if nlsemi {
+				return NewToken(Semicolon, pos)
+			}
 			pos++
 		case ' ', '\t', '\r':
 			pos++
@@ -88,6 +98,8 @@ skip:
 	}
 
 	switch ch := src[pos]; {
+	case ch == ';':
+		return NewToken(Semicolon, pos)
 	case ch == '+':
 		return NewToken(Add, pos)
 	case ch == '-':

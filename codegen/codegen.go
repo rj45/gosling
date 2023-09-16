@@ -43,8 +43,25 @@ func New(ast *ast.AST, asm Assembly) *CodeGen {
 
 func (g *CodeGen) Generate() {
 	g.asm.Prologue()
-	g.genExpr(g.ast.Root())
+
+	g.genStmtList(g.ast.Root())
 	g.asm.Epilogue()
+}
+
+func (g *CodeGen) genStmtList(node ast.NodeID) {
+	children := g.ast.Children(node)
+	for _, child := range children {
+		g.genStmt(child)
+	}
+}
+
+func (g *CodeGen) genStmt(node ast.NodeID) {
+	switch g.ast.Kind(node) {
+	case ast.ExprStmt:
+		g.genExpr(g.ast.Child(node, ast.ExprStmtExpr))
+	default:
+		panic("unknown stmt kind")
+	}
 }
 
 func (g *CodeGen) genExpr(node ast.NodeID) {
