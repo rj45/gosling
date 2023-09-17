@@ -28,13 +28,13 @@ func (p *Parser) stmtList() ast.NodeID {
 	return p.ast.AddNode(ast.StmtList, tok, nodes...)
 }
 
-// stmt = returnStmt | simpleStmt
+// stmt = returnStmt | ifStmt | simpleStmt
 func (p *Parser) stmt() ast.NodeID {
 	switch p.tok.Kind() {
 	case token.Return:
 		return p.returnStmt()
-	case token.LBrace:
-		return p.blockStmt()
+	case token.If:
+		return p.ifStmt()
 	default:
 		return p.simpleStmt()
 	}
@@ -46,6 +46,18 @@ func (p *Parser) blockStmt() ast.NodeID {
 	stmts := p.stmtList()
 	p.expect(token.RBrace)
 	return stmts
+}
+
+// ifStmt = "if" expr blockStmt ("else" blockStmt)?
+func (p *Parser) ifStmt() ast.NodeID {
+	tok := p.expect(token.If)
+	cond := p.expr()
+	then := p.blockStmt()
+	if p.tok.Kind() != token.Else {
+		return p.ast.AddNode(ast.IfStmt, tok, cond, then, ast.InvalidNode)
+	}
+	p.expect(token.Else)
+	return p.ast.AddNode(ast.IfStmt, tok, cond, then, p.blockStmt())
 }
 
 // returnStmt = "return" expr?

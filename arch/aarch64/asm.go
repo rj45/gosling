@@ -102,6 +102,19 @@ func (g *Assembly) JumpToEpilogue() {
 	fmt.Println("  b .L.epilogue")
 }
 
+func (g *Assembly) JumpIfFalse(label string, count int) {
+	fmt.Println("  cmp x0, #0")
+	fmt.Printf("  b.eq .L.%s.%d\n", label, count)
+}
+
+func (g *Assembly) Jump(label string, count int) {
+	fmt.Printf("  b .L.%s.%d\n", label, count)
+}
+
+func (g *Assembly) Label(label string, count int) {
+	fmt.Printf(".L.%s.%d:\n", label, count)
+}
+
 func (g *Assembly) Epilogue() {
 	fmt.Println(".L.epilogue:")
 	fmt.Println("  mov sp, x29")

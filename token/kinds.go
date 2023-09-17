@@ -31,6 +31,8 @@ const (
 
 	// keywords
 	Return
+	If
+	Else
 
 	NumTokens
 )
@@ -57,6 +59,8 @@ var kindStrs = [...]string{
 	LBrace:    "LBrace",
 	RBrace:    "RBrace",
 	Return:    "Return",
+	If:        "If",
+	Else:      "Else",
 }
 
 func (k Kind) String() string {

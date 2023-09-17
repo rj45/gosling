@@ -18,4 +18,9 @@ const (
 	AssignStmtRHS = 1
 
 	// ReturnStmt has list of Expr children
+
+	// IfStmt has Cond, Then, and Else children
+	IfStmtCond = 0
+	IfStmtThen = 1
+	IfStmtElse = 2
 )

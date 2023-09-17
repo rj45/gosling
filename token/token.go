@@ -39,7 +39,7 @@ func (t Token) EndOfToken(src []byte) int {
 			eot++
 		}
 
-	case Return:
+	case Return, If, Else:
 		// for keywords, assume kind length is the token length
 		eot += len(t.Kind().String())
 
@@ -68,6 +68,8 @@ var nlsemi = [NumTokens]bool{
 
 var keywords = map[string]Kind{
 	"return": Return,
+	"if":     If,
+	"else":   Else,
 }
 
 // Next returns the next Token in src relative to the current Token.

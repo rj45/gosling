@@ -33,11 +33,15 @@ type Assembly interface {
 	Ge()
 
 	JumpToEpilogue()
+	JumpIfFalse(string, int)
+	Jump(string, int)
+	Label(string, int)
 }
 
 type CodeGen struct {
-	ast *ast.AST
-	asm Assembly
+	ast   *ast.AST
+	asm   Assembly
+	label int
 }
 
 func New(ast *ast.AST, asm Assembly) *CodeGen {
@@ -69,6 +73,8 @@ func (g *CodeGen) genStmt(node ast.NodeID) {
 		g.genAssignStmt(node)
 	case ast.ReturnStmt:
 		g.genReturnStmt(node)
+	case ast.IfStmt:
+		g.genIfStmt(node)
 	case ast.StmtList:
 		g.genStmtList(node)
 	default:
@@ -86,6 +92,25 @@ func (g *CodeGen) genReturnStmt(node ast.NodeID) {
 		g.genExpr(child)
 	}
 	g.asm.JumpToEpilogue()
+}
+
+func (g *CodeGen) genIfStmt(node ast.NodeID) {
+	cond := g.ast.Child(node, ast.IfStmtCond)
+	then := g.ast.Child(node, ast.IfStmtThen)
+	els := g.ast.Child(node, ast.IfStmtElse)
+
+	label := g.label
+	g.label++
+
+	g.genExpr(cond)
+	g.asm.JumpIfFalse("else", label)
+	g.genStmt(then)
+	g.asm.Jump("endif", label)
+	g.asm.Label("else", label)
+	if els != ast.InvalidNode {
+		g.genStmt(els)
+	}
+	g.asm.Label("endif", label)
 }
 
 func (g *CodeGen) localOffset(node ast.NodeID) int {

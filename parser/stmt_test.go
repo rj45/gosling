@@ -109,6 +109,62 @@ func TestParseBlockStmt(t *testing.T) {
 	}
 }
 
+func TestParseIfStmt(t *testing.T) {
+	tests := []struct {
+		src      string
+		expected string
+	}{
+		{"if 1 {2}", `IfStmt(
+			Literal("1"),
+			StmtList(
+				ExprStmt(Literal("2")),
+			),
+			nil,
+		)`},
+		{"if 1 {2} else {3}", `IfStmt(
+			Literal("1"),
+			StmtList(
+				ExprStmt(Literal("2")),
+			),
+			StmtList(
+				ExprStmt(Literal("3")),
+			),
+		)`},
+		{"if 1 {2} else {if 3 {4} else {5}}", `IfStmt(
+			Literal("1"),
+			StmtList(
+				ExprStmt(Literal("2")),
+			),
+			StmtList(
+				IfStmt(
+					Literal("3"),
+					StmtList(
+						ExprStmt(Literal("4")),
+					),
+					StmtList(
+						ExprStmt(Literal("5")),
+					),
+				),
+			),
+		)`},
+	}
+	for _, tt := range tests {
+		parser := parser.New([]byte("{" + tt.src + "}"))
+		a := parser.Parse()
+
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+
+		if trim(a.StringOf(stmt)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
+		}
+	}
+}
+
 func TestParseAssignStmt(t *testing.T) {
 	tests := []struct {
 		src      string
