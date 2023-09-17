@@ -15,7 +15,11 @@ func (p *Parser) stmtList() ast.NodeID {
 			continue
 		}
 
-		nodes = append(nodes, p.stmt())
+		stmt := p.stmt()
+		if stmt != ast.InvalidNode {
+			nodes = append(nodes, stmt)
+		}
+
 		if p.tok.Kind() != token.Semicolon {
 			break
 		}
@@ -56,6 +60,10 @@ func (p *Parser) returnStmt() ast.NodeID {
 // simpleStmt = name "=" expr | expr
 func (p *Parser) simpleStmt() ast.NodeID {
 	tok := p.tok
+
+	if tok.Kind() == token.Semicolon {
+		return ast.InvalidNode
+	}
 
 	lhs := p.expr()
 

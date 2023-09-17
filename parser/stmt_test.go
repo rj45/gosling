@@ -89,6 +89,7 @@ func TestParseBlockStmt(t *testing.T) {
 				ReturnStmt(Literal("3")),
 			),
 		)`},
+		{"{ ;;;; }", `StmtList()`},
 	}
 
 	for _, tt := range tests {
