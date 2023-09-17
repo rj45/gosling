@@ -46,7 +46,7 @@ func (t Token) EndOfToken(src []byte) int {
 	case Illegal, EOF:
 		// zero length
 
-	case Add, Sub, Mul, Div, LParen, RParen, Lt, Gt, Semicolon, Assign:
+	case Add, Sub, Mul, Div, LParen, RParen, LBrace, RBrace, Lt, Gt, Semicolon, Assign:
 		eot++ // For single character tokens (like '+', '-', etc.)
 	case Eq, Ne, Le, Ge:
 		eot += 2 // For double character tokens (like '==', '!=', etc.)
@@ -60,7 +60,9 @@ func (t Token) EndOfToken(src []byte) int {
 // nlsemi is a list of tokens that have the a following newline converted to a semicolon
 var nlsemi = [NumTokens]bool{
 	Int:    true,
+	Ident:  true,
 	RParen: true,
+	RBrace: true,
 	Return: true,
 }
 
@@ -126,6 +128,10 @@ skip:
 		return NewToken(LParen, pos)
 	case ch == ')':
 		return NewToken(RParen, pos)
+	case ch == '{':
+		return NewToken(LBrace, pos)
+	case ch == '}':
+		return NewToken(RBrace, pos)
 
 	case ch == '=':
 		if pos+1 < len(src) && src[pos+1] == '=' {

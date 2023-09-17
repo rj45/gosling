@@ -69,6 +69,8 @@ func (g *CodeGen) genStmt(node ast.NodeID) {
 		g.genAssignStmt(node)
 	case ast.ReturnStmt:
 		g.genReturnStmt(node)
+	case ast.StmtList:
+		g.genStmtList(node)
 	default:
 		panic("unknown stmt kind")
 	}

@@ -26,6 +26,8 @@ const (
 
 	LParen
 	RParen
+	LBrace
+	RBrace
 
 	// keywords
 	Return
@@ -52,6 +54,8 @@ var kindStrs = [...]string{
 	Ge:        "Ge",
 	LParen:    "LParen",
 	RParen:    "RParen",
+	LBrace:    "LBrace",
+	RBrace:    "RBrace",
 	Return:    "Return",
 }
 

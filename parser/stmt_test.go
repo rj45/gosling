@@ -22,7 +22,7 @@ func TestParseExprStmt(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()
@@ -51,7 +51,48 @@ func TestParseReturnStmt(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
+		a := parser.Parse()
+
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+
+		if trim(a.StringOf(stmt)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
+		}
+	}
+}
+
+func TestParseBlockStmt(t *testing.T) {
+	tests := []struct {
+		src      string
+		expected string
+	}{
+		{"{42}", `StmtList(
+			ExprStmt(Literal("42")),
+		)`},
+		{"{1+2}", `StmtList(
+			ExprStmt(
+				BinaryExpr("+", Literal("1"), Literal("2")),
+			),
+		)`},
+		{"{ {1; {2;} return 3;} }", `StmtList(
+			StmtList(
+				ExprStmt(Literal("1")),
+				StmtList(
+					ExprStmt(Literal("2")),
+				),
+				ReturnStmt(Literal("3")),
+			),
+		)`},
+	}
+
+	for _, tt := range tests {
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()
@@ -84,7 +125,7 @@ func TestParseAssignStmt(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()
@@ -124,7 +165,7 @@ func TestParseStmtList(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()

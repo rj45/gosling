@@ -9,11 +9,17 @@ import (
 func (p *Parser) stmtList() ast.NodeID {
 	nodes := []ast.NodeID{}
 	tok := p.tok
-	for p.tok.Kind() != token.EOF {
-		nodes = append(nodes, p.stmt())
-		if p.tok.Kind() != token.EOF {
-			p.expect(token.Semicolon)
+	for p.tok.Kind() != token.EOF && p.tok.Kind() != token.RBrace {
+		if p.tok.Kind() == token.LBrace {
+			nodes = append(nodes, p.blockStmt())
+			continue
 		}
+
+		nodes = append(nodes, p.stmt())
+		if p.tok.Kind() != token.Semicolon {
+			break
+		}
+		p.expect(token.Semicolon)
 	}
 	return p.ast.AddNode(ast.StmtList, tok, nodes...)
 }
@@ -23,15 +29,25 @@ func (p *Parser) stmt() ast.NodeID {
 	switch p.tok.Kind() {
 	case token.Return:
 		return p.returnStmt()
+	case token.LBrace:
+		return p.blockStmt()
 	default:
 		return p.simpleStmt()
 	}
 }
 
+// blockStmt = "{" stmtList "}"
+func (p *Parser) blockStmt() ast.NodeID {
+	p.expect(token.LBrace)
+	stmts := p.stmtList()
+	p.expect(token.RBrace)
+	return stmts
+}
+
 // returnStmt = "return" expr?
 func (p *Parser) returnStmt() ast.NodeID {
 	tok := p.expect(token.Return)
-	if p.tok.Kind() == token.Semicolon || p.tok.Kind() == token.EOF {
+	if p.tok.Kind() == token.Semicolon || p.tok.Kind() == token.EOF || p.tok.Kind() == token.RBrace {
 		return p.ast.AddNode(ast.ReturnStmt, tok)
 	}
 	return p.ast.AddNode(ast.ReturnStmt, tok, p.expr())

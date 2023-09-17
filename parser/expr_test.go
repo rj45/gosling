@@ -18,7 +18,7 @@ func TestParsePrimaryExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()
@@ -45,7 +45,7 @@ func TestParseAddExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()
@@ -100,7 +100,7 @@ func TestParseMulExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()
@@ -145,7 +145,7 @@ func TestParseUrnaryExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()
@@ -176,7 +176,7 @@ func TestParseCompareExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
+		parser := parser.New([]byte("{" + tt.src + "}"))
 		a := parser.Parse()
 
 		root := a.Root()
