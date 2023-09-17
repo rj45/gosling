@@ -6,14 +6,18 @@ type Assembly struct {
 	depth int
 }
 
-func (g *Assembly) Prologue() {
+func align(n int, align int) int {
+	return (n + align - 1) / align * align
+}
+
+func (g *Assembly) Prologue(stacksize int) {
 	fmt.Println(".text")
 	fmt.Println(".global _main")
 	fmt.Println(".align 2")
 	fmt.Println("_main:")
 	fmt.Println("  stp x29, x30, [sp, #-16]!")
 	fmt.Println("  mov x29, sp")
-	fmt.Println("  sub sp, sp, #" + fmt.Sprintf("%d", ('z'-'a'+1)*g.WordSize()))
+	fmt.Println("  sub sp, sp, #" + fmt.Sprintf("%d", align(stacksize*g.WordSize(), 16)))
 }
 
 func (g *Assembly) WordSize() int {

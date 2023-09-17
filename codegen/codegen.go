@@ -8,7 +8,7 @@ import (
 type Assembly interface {
 	WordSize() int
 
-	Prologue()
+	Prologue(int)
 	Epilogue()
 
 	Push()
@@ -46,7 +46,7 @@ func New(ast *ast.AST, asm Assembly) *CodeGen {
 }
 
 func (g *CodeGen) Generate() {
-	g.asm.Prologue()
+	g.asm.Prologue(g.ast.StackSize())
 
 	g.genStmtList(g.ast.Root())
 	g.asm.Epilogue()
@@ -78,11 +78,8 @@ func (g *CodeGen) genAssignStmt(node ast.NodeID) {
 func (g *CodeGen) localOffset(node ast.NodeID) int {
 	switch g.ast.Kind(node) {
 	case ast.Name:
-		name := g.ast.NodeBytes(node)
-		if len(name) != 1 || name[0] < 'a' || name[0] > 'z' {
-			panic("invalid name")
-		}
-		return int(name[0]-'a'+1) * g.asm.WordSize()
+		sym := g.ast.SymbolOf(node)
+		return -(sym.Offset * g.asm.WordSize())
 	default:
 		panic("unknown addr kind")
 	}
