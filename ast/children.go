@@ -16,4 +16,6 @@ const (
 	// AssignStmt has LHS and RHS children
 	AssignStmtLHS = 0
 	AssignStmtRHS = 1
+
+	// ReturnStmt has list of Expr children
 )

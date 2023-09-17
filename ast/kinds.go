@@ -15,6 +15,7 @@ const (
 	StmtList
 	ExprStmt
 	AssignStmt
+	ReturnStmt
 )
 
 var kindNames = []string{
@@ -26,6 +27,7 @@ var kindNames = []string{
 	StmtList:    "StmtList",
 	ExprStmt:    "ExprStmt",
 	AssignStmt:  "AssignStmt",
+	ReturnStmt:  "ReturnStmt",
 }
 
 func (k Kind) String() string {

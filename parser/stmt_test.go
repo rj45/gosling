@@ -38,6 +38,35 @@ func TestParseExprStmt(t *testing.T) {
 	}
 }
 
+func TestParseReturnStmt(t *testing.T) {
+	tests := []struct {
+		src      string
+		expected string
+	}{
+		{"return 42", `ReturnStmt(Literal("42"))`},
+		{"return 1+2", `ReturnStmt(
+			BinaryExpr("+", Literal("1"), Literal("2")),
+		)`},
+		{"return", `ReturnStmt()`},
+	}
+
+	for _, tt := range tests {
+		parser := parser.New([]byte(tt.src))
+		a := parser.Parse()
+
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+
+		if trim(a.StringOf(stmt)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
+		}
+	}
+}
+
 func TestParseAssignStmt(t *testing.T) {
 	tests := []struct {
 		src      string

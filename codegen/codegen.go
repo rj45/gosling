@@ -31,6 +31,8 @@ type Assembly interface {
 	Le()
 	Gt()
 	Ge()
+
+	JumpToEpilogue()
 }
 
 type CodeGen struct {
@@ -65,6 +67,8 @@ func (g *CodeGen) genStmt(node ast.NodeID) {
 		g.genExpr(g.ast.Child(node, ast.ExprStmtExpr))
 	case ast.AssignStmt:
 		g.genAssignStmt(node)
+	case ast.ReturnStmt:
+		g.genReturnStmt(node)
 	default:
 		panic("unknown stmt kind")
 	}
@@ -73,6 +77,13 @@ func (g *CodeGen) genStmt(node ast.NodeID) {
 func (g *CodeGen) genAssignStmt(node ast.NodeID) {
 	g.genExpr(g.ast.Child(node, ast.AssignStmtRHS))
 	g.asm.StoreLocal(g.localOffset(g.ast.Child(node, ast.AssignStmtLHS)))
+}
+
+func (g *CodeGen) genReturnStmt(node ast.NodeID) {
+	for _, child := range g.ast.Children(node) {
+		g.genExpr(child)
+	}
+	g.asm.JumpToEpilogue()
 }
 
 func (g *CodeGen) localOffset(node ast.NodeID) int {

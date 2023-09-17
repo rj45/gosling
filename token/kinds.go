@@ -27,6 +27,9 @@ const (
 	LParen
 	RParen
 
+	// keywords
+	Return
+
 	NumTokens
 )
 
@@ -49,6 +52,7 @@ var kindStrs = [...]string{
 	Ge:        "Ge",
 	LParen:    "LParen",
 	RParen:    "RParen",
+	Return:    "Return",
 }
 
 func (k Kind) String() string {

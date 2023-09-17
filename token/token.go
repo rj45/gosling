@@ -39,6 +39,10 @@ func (t Token) EndOfToken(src []byte) int {
 			eot++
 		}
 
+	case Return:
+		// for keywords, assume kind length is the token length
+		eot += len(t.Kind().String())
+
 	case Illegal, EOF:
 		// zero length
 
@@ -57,6 +61,11 @@ func (t Token) EndOfToken(src []byte) int {
 var nlsemi = [NumTokens]bool{
 	Int:    true,
 	RParen: true,
+	Return: true,
+}
+
+var keywords = map[string]Kind{
+	"return": Return,
 }
 
 // Next returns the next Token in src relative to the current Token.
@@ -141,7 +150,14 @@ skip:
 	case ch >= '0' && ch <= '9':
 		return NewToken(Int, pos)
 	case ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == '_':
-		return NewToken(Ident, pos)
+		start := pos
+		for pos < len(src) && (src[pos] >= 'a' && src[pos] <= 'z' || src[pos] >= 'A' && src[pos] <= 'Z' || src[pos] >= '0' && src[pos] <= '9' || src[pos] == '_') {
+			pos++
+		}
+		if keyword, ok := keywords[string(src[start:pos])]; ok {
+			return NewToken(keyword, start)
+		}
+		return NewToken(Ident, start)
 	}
 	return NewToken(Illegal, pos)
 }

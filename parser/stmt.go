@@ -11,17 +11,30 @@ func (p *Parser) stmtList() ast.NodeID {
 	tok := p.tok
 	for p.tok.Kind() != token.EOF {
 		nodes = append(nodes, p.stmt())
+		if p.tok.Kind() != token.EOF {
+			p.expect(token.Semicolon)
+		}
 	}
 	return p.ast.AddNode(ast.StmtList, tok, nodes...)
 }
 
-// stmt = simpleStmt ";"
+// stmt = returnStmt | simpleStmt
 func (p *Parser) stmt() ast.NodeID {
-	node := p.simpleStmt()
-	if p.tok.Kind() != token.EOF {
-		p.expect(token.Semicolon)
+	switch p.tok.Kind() {
+	case token.Return:
+		return p.returnStmt()
+	default:
+		return p.simpleStmt()
 	}
-	return node
+}
+
+// returnStmt = "return" expr?
+func (p *Parser) returnStmt() ast.NodeID {
+	tok := p.expect(token.Return)
+	if p.tok.Kind() == token.Semicolon || p.tok.Kind() == token.EOF {
+		return p.ast.AddNode(ast.ReturnStmt, tok)
+	}
+	return p.ast.AddNode(ast.ReturnStmt, tok, p.expr())
 }
 
 // simpleStmt = name "=" expr | expr

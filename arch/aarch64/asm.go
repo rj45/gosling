@@ -98,7 +98,12 @@ func (g *Assembly) Ge() {
 	fmt.Println("  cset x0, ge")
 }
 
+func (g *Assembly) JumpToEpilogue() {
+	fmt.Println("  b .L.epilogue")
+}
+
 func (g *Assembly) Epilogue() {
+	fmt.Println(".L.epilogue:")
 	fmt.Println("  mov sp, x29")
 	fmt.Println("  ldp x29, x30, [sp], #16")
 	fmt.Println("  mov x16, #1") // syscall number for exit()
