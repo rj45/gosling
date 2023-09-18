@@ -10,33 +10,32 @@ func (p *Parser) stmtList() ast.NodeID {
 	nodes := []ast.NodeID{}
 	tok := p.tok
 	for p.tok.Kind() != token.EOF && p.tok.Kind() != token.RBrace {
-		if p.tok.Kind() == token.LBrace {
-			nodes = append(nodes, p.blockStmt())
-			continue
-		}
-
-		stmt := p.stmt()
-		if stmt != ast.InvalidNode {
-			nodes = append(nodes, stmt)
-		}
-
-		if p.tok.Kind() != token.Semicolon {
-			break
-		}
-		p.expect(token.Semicolon)
+		nodes = append(nodes, p.stmt())
 	}
 	return p.ast.AddNode(ast.StmtList, tok, nodes...)
 }
 
-// stmt = returnStmt | ifStmt | simpleStmt
+// stmt = returnStmt | ifStmt | forStmt | blockStmt | simpleStmt
 func (p *Parser) stmt() ast.NodeID {
 	switch p.tok.Kind() {
 	case token.Return:
-		return p.returnStmt()
+		stmt := p.returnStmt()
+		if p.tok.Kind() == token.Semicolon {
+			p.expect(token.Semicolon)
+		}
+		return stmt
 	case token.If:
 		return p.ifStmt()
+	case token.For:
+		return p.forStmt()
+	case token.LBrace:
+		return p.blockStmt()
 	default:
-		return p.simpleStmt()
+		stmt := p.simpleStmt()
+		if p.tok.Kind() == token.Semicolon {
+			p.expect(token.Semicolon)
+		}
+		return stmt
 	}
 }
 
@@ -60,6 +59,42 @@ func (p *Parser) ifStmt() ast.NodeID {
 	return p.ast.AddNode(ast.IfStmt, tok, cond, then, p.blockStmt())
 }
 
+// forStmt = "for" simpleStmt ";" expr ";" simpleStmt blockStmt
+func (p *Parser) forStmt() ast.NodeID {
+	tok := p.expect(token.For)
+	var init, cond, post ast.NodeID
+	if p.tok.Kind() != token.LBrace {
+		init = p.simpleStmt()
+		if p.tok.Kind() != token.LBrace {
+			p.expect(token.Semicolon)
+		}
+	}
+
+	if p.tok.Kind() != token.LBrace {
+		cond = p.simpleStmt()
+		if p.tok.Kind() != token.LBrace {
+			p.expect(token.Semicolon)
+		}
+	}
+
+	if p.tok.Kind() != token.LBrace {
+		post = p.simpleStmt()
+	}
+
+	body := p.blockStmt()
+
+	if init != ast.InvalidNode && cond == ast.InvalidNode && post == ast.InvalidNode {
+		cond = init
+		init = ast.InvalidNode
+	}
+
+	if cond != ast.InvalidNode && p.ast.Kind(cond) != ast.ExprStmt {
+		p.error("expected for condition to be expression statement")
+	}
+
+	return p.ast.AddNode(ast.ForStmt, tok, init, cond, post, body)
+}
+
 // returnStmt = "return" expr?
 func (p *Parser) returnStmt() ast.NodeID {
 	tok := p.expect(token.Return)
@@ -74,7 +109,7 @@ func (p *Parser) simpleStmt() ast.NodeID {
 	tok := p.tok
 
 	if tok.Kind() == token.Semicolon {
-		return ast.InvalidNode
+		return p.ast.AddNode(ast.EmptyStmt, p.tok)
 	}
 
 	lhs := p.expr()

@@ -33,6 +33,7 @@ const (
 	Return
 	If
 	Else
+	For
 
 	NumTokens
 )
@@ -61,6 +62,7 @@ var kindStrs = [...]string{
 	Return:    "Return",
 	If:        "If",
 	Else:      "Else",
+	For:       "For",
 }
 
 func (k Kind) String() string {

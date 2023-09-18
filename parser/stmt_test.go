@@ -89,7 +89,12 @@ func TestParseBlockStmt(t *testing.T) {
 				ReturnStmt(Literal("3")),
 			),
 		)`},
-		{"{ ;;;; }", `StmtList()`},
+		{"{ ;;;; }", `StmtList(
+			EmptyStmt(),
+			EmptyStmt(),
+			EmptyStmt(),
+			EmptyStmt(),
+		)`},
 	}
 
 	for _, tt := range tests {
@@ -143,6 +148,76 @@ func TestParseIfStmt(t *testing.T) {
 					),
 					StmtList(
 						ExprStmt(Literal("5")),
+					),
+				),
+			),
+		)`},
+	}
+	for _, tt := range tests {
+		parser := parser.New([]byte("{" + tt.src + "}"))
+		a := parser.Parse()
+
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+
+		if trim(a.StringOf(stmt)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
+		}
+	}
+}
+
+func TestParseForStmt(t *testing.T) {
+	tests := []struct {
+		src      string
+		expected string
+	}{
+		{"for {1}", `ForStmt(
+			nil,
+			nil,
+			nil,
+			StmtList(
+				ExprStmt(Literal("1")),
+			),
+		)`},
+		{"for 1 {2}", `ForStmt(
+			nil,
+			ExprStmt(Literal("1")),
+			nil,
+			StmtList(
+				ExprStmt(Literal("2")),
+			),
+		)`},
+		{"for 1; 2 {3}", `ForStmt(
+			ExprStmt(Literal("1")),
+			ExprStmt(Literal("2")),
+			nil,
+			StmtList(
+				ExprStmt(Literal("3")),
+			),
+		)`},
+		{"for 1;2;3 {4}", `ForStmt(
+			ExprStmt(Literal("1")),
+			ExprStmt(Literal("2")),
+			ExprStmt(Literal("3")),
+			StmtList(
+				ExprStmt(Literal("4")),
+			),
+		)`},
+		{"for 1;2;3 {for 4;5;6 {7}}", `ForStmt(
+			ExprStmt(Literal("1")),
+			ExprStmt(Literal("2")),
+			ExprStmt(Literal("3")),
+			StmtList(
+				ForStmt(
+					ExprStmt(Literal("4")),
+					ExprStmt(Literal("5")),
+					ExprStmt(Literal("6")),
+					StmtList(
+						ExprStmt(Literal("7")),
 					),
 				),
 			),

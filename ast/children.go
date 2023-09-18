@@ -10,6 +10,8 @@ const (
 
 	// StmtList has a list of statements
 
+	// EmptyStmt has no children
+
 	// ExprStmt has Expr child
 	ExprStmtExpr = 0
 
@@ -23,4 +25,10 @@ const (
 	IfStmtCond = 0
 	IfStmtThen = 1
 	IfStmtElse = 2
+
+	// ForStmt has Init, Cond, Post, and Body children
+	ForStmtInit = 0
+	ForStmtCond = 1
+	ForStmtPost = 2
+	ForStmtBody = 3
 )

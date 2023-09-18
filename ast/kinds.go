@@ -13,10 +13,12 @@ const (
 	UnaryExpr
 
 	StmtList
+	EmptyStmt
 	ExprStmt
 	AssignStmt
 	ReturnStmt
 	IfStmt
+	ForStmt
 )
 
 var kindNames = []string{
@@ -26,10 +28,12 @@ var kindNames = []string{
 	BinaryExpr:  "BinaryExpr",
 	UnaryExpr:   "UnaryExpr",
 	StmtList:    "StmtList",
+	EmptyStmt:   "EmptyStmt",
 	ExprStmt:    "ExprStmt",
 	AssignStmt:  "AssignStmt",
 	ReturnStmt:  "ReturnStmt",
 	IfStmt:      "IfStmt",
+	ForStmt:     "ForStmt",
 }
 
 func (k Kind) String() string {

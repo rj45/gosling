@@ -39,7 +39,7 @@ func (t Token) EndOfToken(src []byte) int {
 			eot++
 		}
 
-	case Return, If, Else:
+	case Return, If, Else, For:
 		// for keywords, assume kind length is the token length
 		eot += len(t.Kind().String())
 
@@ -70,6 +70,7 @@ var keywords = map[string]Kind{
 	"return": Return,
 	"if":     If,
 	"else":   Else,
+	"for":    For,
 }
 
 // Next returns the next Token in src relative to the current Token.

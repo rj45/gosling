@@ -50,6 +50,7 @@ func (p *Parser) expect(kind token.Kind) token.Token {
 // error prints the source code and a pointer to the token that caused the error.
 func (p *Parser) error(msg string, args ...interface{}) {
 	// todo: print the line number and column number instead of offset
+	fmt.Fprintf(os.Stderr, "%s\n", p.ast.String())
 	fmt.Fprintf(os.Stderr, "Error at offset %d:\n", p.tok.Offset())
 	fmt.Fprintf(os.Stderr, "%s\n", string(p.src))
 	fmt.Fprintf(os.Stderr, "%*s^  ", p.tok.Offset(), "")
