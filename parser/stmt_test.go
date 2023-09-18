@@ -23,7 +23,10 @@ func TestParseExprStmt(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -52,7 +55,10 @@ func TestParseReturnStmt(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -99,7 +105,10 @@ func TestParseBlockStmt(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -155,7 +164,10 @@ func TestParseIfStmt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -225,7 +237,10 @@ func TestParseForStmt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -258,7 +273,10 @@ func TestParseAssignStmt(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -298,7 +316,10 @@ func TestParseStmtList(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/rj45/gosling/arch/aarch64"
@@ -11,7 +12,11 @@ import (
 func main() {
 	src := []byte(os.Args[1])
 	parser := parser.New(src)
-	ast := parser.Parse()
+	ast, err := parser.Parse()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	gen := codegen.New(ast, &aarch64.Assembly{})
 	gen.Generate()

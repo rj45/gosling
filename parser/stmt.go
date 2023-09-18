@@ -11,6 +11,10 @@ func (p *Parser) stmtList() ast.NodeID {
 	tok := p.tok
 	for p.tok.Kind() != token.EOF && p.tok.Kind() != token.RBrace {
 		nodes = append(nodes, p.stmt())
+		if len(p.errs) > 0 {
+			// todo: implement error recovery
+			break
+		}
 	}
 	return p.ast.AddNode(ast.StmtList, tok, nodes...)
 }
@@ -20,7 +24,7 @@ func (p *Parser) stmt() ast.NodeID {
 	switch p.tok.Kind() {
 	case token.Return:
 		stmt := p.returnStmt()
-		if p.tok.Kind() == token.Semicolon {
+		if p.tok.Kind() != token.RBrace {
 			p.expect(token.Semicolon)
 		}
 		return stmt
@@ -32,7 +36,7 @@ func (p *Parser) stmt() ast.NodeID {
 		return p.blockStmt()
 	default:
 		stmt := p.simpleStmt()
-		if p.tok.Kind() == token.Semicolon {
+		if p.tok.Kind() != token.RBrace {
 			p.expect(token.Semicolon)
 		}
 		return stmt
@@ -89,7 +93,7 @@ func (p *Parser) forStmt() ast.NodeID {
 	}
 
 	if cond != ast.InvalidNode && p.ast.Kind(cond) != ast.ExprStmt {
-		p.error("expected for condition to be expression statement")
+		p.errorAt(p.ast.Token(cond), "expected for condition to be expression statement")
 	}
 
 	return p.ast.AddNode(ast.ForStmt, tok, init, cond, post, body)
@@ -117,7 +121,7 @@ func (p *Parser) simpleStmt() ast.NodeID {
 	switch p.tok.Kind() {
 	case token.Assign:
 		if p.ast.Kind(lhs) != ast.Name {
-			p.error("expected name on the left side of the assignment")
+			p.errorAt(p.ast.Token(lhs), "expected name on the left side of the assignment")
 		}
 		return p.ast.AddNode(ast.AssignStmt, p.next(), lhs, p.expr())
 	}

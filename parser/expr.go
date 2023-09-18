@@ -62,7 +62,6 @@ func (p *Parser) mul() ast.NodeID {
 		default:
 			return node
 		}
-
 	}
 }
 
@@ -96,7 +95,7 @@ func (p *Parser) primary() ast.NodeID {
 		p.ast.SymbolOf(node) // generate address
 		return node
 	default:
-		p.error("expected int")
+		p.error("expected expression")
 		return ast.InvalidNode
 	}
 }

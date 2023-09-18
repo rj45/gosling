@@ -157,7 +157,15 @@ skip:
 		return NewToken(Gt, pos)
 
 	case ch >= '0' && ch <= '9':
-		return NewToken(Int, pos)
+		start := pos
+		for pos < len(src) && src[pos] >= '0' && src[pos] <= '9' {
+			pos++
+		}
+		if src[pos] >= 'a' && src[pos] <= 'z' || src[pos] >= 'A' && src[pos] <= 'Z' {
+			// identifier starting with a number
+			return NewToken(Illegal, start)
+		}
+		return NewToken(Int, start)
 	case ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == '_':
 		start := pos
 		for pos < len(src) && (src[pos] >= 'a' && src[pos] <= 'z' || src[pos] >= 'A' && src[pos] <= 'Z' || src[pos] >= '0' && src[pos] <= '9' || src[pos] == '_') {
@@ -169,6 +177,29 @@ skip:
 		return NewToken(Ident, start)
 	}
 	return NewToken(Illegal, pos)
+}
+
+// NextValidToken returns the next non-illegal token.
+func (t Token) NextValidToken(src []byte) Token {
+	for t.Kind() == Illegal {
+		pos := t.Offset()
+
+		skipped := false
+
+		// skip over alphanumeric characters
+		for pos < len(src) && (src[pos] >= 'a' && src[pos] <= 'z' || src[pos] >= 'A' && src[pos] <= 'Z' || src[pos] >= '0' && src[pos] <= '9' || src[pos] == '_') {
+			skipped = true
+			pos++
+		}
+
+		if !skipped && src[pos] != ' ' && src[pos] != '\t' && src[pos] != '\r' && src[pos] != '\n' {
+			pos++
+		}
+
+		t = NewToken(Illegal, pos)
+		t = t.Next(src)
+	}
+	return t
 }
 
 // Bytes returns a cheap byte slice of the token text

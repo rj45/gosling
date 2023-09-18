@@ -117,9 +117,8 @@ func (a *AST) AddNode(kind Kind, token token.Token, children ...NodeID) NodeID {
 	return id
 }
 
-// PositionOf returns the line and column of the given node
-func (a *AST) PositionOf(n NodeID) (line int, col int) {
-	tok := a.node[n].token()
+// PositionOf returns the line and column of the given token
+func (a *AST) PositionOf(tok token.Token) (line int, col int) {
 	offset := tok.Offset()
 	var lineoffset int
 	for i, ch := range a.src {

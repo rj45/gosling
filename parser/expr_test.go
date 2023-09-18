@@ -19,7 +19,10 @@ func TestParsePrimaryExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -46,7 +49,10 @@ func TestParseAddExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -101,7 +107,10 @@ func TestParseMulExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -146,7 +155,10 @@ func TestParseUrnaryExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
@@ -177,7 +189,10 @@ func TestParseCompareExpr(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
-		a := parser.Parse()
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
 
 		root := a.Root()
 		if a.Kind(root) != ast.StmtList {
