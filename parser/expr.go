@@ -57,7 +57,7 @@ func (p *Parser) mul() ast.NodeID {
 	node := p.unary()
 	for {
 		switch p.tok.Kind() {
-		case token.Mul, token.Div:
+		case token.Star, token.Div:
 			node = p.ast.AddNode(ast.BinaryExpr, p.next(), node, p.unary())
 		default:
 			return node
@@ -65,7 +65,7 @@ func (p *Parser) mul() ast.NodeID {
 	}
 }
 
-// unary = ("+" | "-") unary
+// unary = ("+" | "-" | "*" | "&") unary
 //
 //	| primary
 func (p *Parser) unary() ast.NodeID {
@@ -75,6 +75,10 @@ func (p *Parser) unary() ast.NodeID {
 		return p.unary()
 	case token.Sub:
 		return p.ast.AddNode(ast.UnaryExpr, p.next(), p.unary())
+	case token.Star:
+		return p.ast.AddNode(ast.DerefExpr, p.next(), p.unary())
+	case token.And:
+		return p.ast.AddNode(ast.AddrExpr, p.next(), p.unary())
 	default:
 		return p.primary()
 	}

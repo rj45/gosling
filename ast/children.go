@@ -31,4 +31,10 @@ const (
 	ForStmtCond = 1
 	ForStmtPost = 2
 	ForStmtBody = 3
+
+	// DerefExpr has Expr child
+	DerefExprExpr = 0
+
+	// AddrExpr has Expr child
+	AddrExprExpr = 0
 )

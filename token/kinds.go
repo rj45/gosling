@@ -14,8 +14,9 @@ const (
 
 	Add
 	Sub
-	Mul
 	Div
+	Star
+	And
 
 	Eq
 	Ne
@@ -47,7 +48,7 @@ var kindStrs = [...]string{
 	Assign:    "Assign",
 	Add:       "Add",
 	Sub:       "Sub",
-	Mul:       "Mul",
+	Star:      "Mul",
 	Div:       "Div",
 	Eq:        "Eq",
 	Ne:        "Ne",

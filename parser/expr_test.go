@@ -151,6 +151,11 @@ func TestParseUrnaryExpr(t *testing.T) {
 				UnaryExpr("-", Literal("6")),
 			)
 		`},
+		{"*foo", `DerefExpr(Name("foo"))`},
+		{"**foo", `DerefExpr(
+			DerefExpr(Name("foo")),
+		)`},
+		{"&foo", `AddrExpr(Name("foo"))`},
 	}
 
 	for _, tt := range tests {

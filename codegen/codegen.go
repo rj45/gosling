@@ -14,9 +14,11 @@ type Assembly interface {
 	Push()
 	Pop()
 	LoadLocal(int)
-	StoreLocal(int)
+	Load()
+	Store()
 
 	LoadInt(string)
+	LocalAddr(int)
 
 	Add()
 	Sub()
@@ -87,8 +89,11 @@ func (g *CodeGen) genStmt(node ast.NodeID) {
 }
 
 func (g *CodeGen) genAssignStmt(node ast.NodeID) {
+	g.genAddr(g.ast.Child(node, ast.AssignStmtLHS))
+	g.asm.Push()
 	g.genExpr(g.ast.Child(node, ast.AssignStmtRHS))
-	g.asm.StoreLocal(g.localOffset(g.ast.Child(node, ast.AssignStmtLHS)))
+	g.asm.Pop()
+	g.asm.Store()
 }
 
 func (g *CodeGen) genReturnStmt(node ast.NodeID) {
@@ -148,7 +153,7 @@ func (g *CodeGen) localOffset(node ast.NodeID) int {
 		sym := g.ast.SymbolOf(node)
 		return -(sym.Offset * g.asm.WordSize())
 	default:
-		panic("unknown addr kind")
+		panic("unknown addr kind for offset")
 	}
 }
 
@@ -165,7 +170,7 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 			g.asm.Add()
 		case token.Sub:
 			g.asm.Sub()
-		case token.Mul:
+		case token.Star:
 			g.asm.Mul()
 		case token.Div:
 			g.asm.Div()
@@ -185,11 +190,27 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 	case ast.UnaryExpr:
 		g.genExpr(g.ast.Child(node, ast.UnaryExprExpr))
 		g.asm.Neg()
+	case ast.DerefExpr:
+		g.genExpr(g.ast.Child(node, ast.DerefExprExpr))
+		g.asm.Load()
+	case ast.AddrExpr:
+		g.genAddr(g.ast.Child(node, ast.AddrExprExpr))
 	case ast.Literal:
 		g.asm.LoadInt(g.ast.NodeString(node))
 	case ast.Name:
 		g.asm.LoadLocal(g.localOffset(node))
 	default:
 		panic("unknown expr kind")
+	}
+}
+
+func (g *CodeGen) genAddr(node ast.NodeID) {
+	switch g.ast.Kind(node) {
+	case ast.Name:
+		g.asm.LocalAddr(g.localOffset(node))
+	case ast.DerefExpr:
+		g.genExpr(g.ast.Child(node, ast.DerefExprExpr))
+	default:
+		panic("unknown addr kind")
 	}
 }

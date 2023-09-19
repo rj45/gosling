@@ -40,12 +40,20 @@ func (g *Assembly) LoadLocal(offset int) {
 	fmt.Printf("  ldr x0, [x29, #%d]\n", offset)
 }
 
-func (g *Assembly) StoreLocal(offset int) {
-	fmt.Printf("  str x0, [x29, #%d]\n", offset)
+func (g *Assembly) Load() {
+	fmt.Println("  ldr x0, [x0]")
+}
+
+func (g *Assembly) Store() {
+	fmt.Println("  str x0, [x1]")
 }
 
 func (g *Assembly) LoadInt(lit string) {
 	fmt.Println("  mov x0, #" + lit)
+}
+
+func (g *Assembly) LocalAddr(offset int) {
+	fmt.Printf("  add x0, x29, #%d\n", offset)
 }
 
 func (g *Assembly) Add() {

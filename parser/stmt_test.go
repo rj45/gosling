@@ -269,6 +269,16 @@ func TestParseAssignStmt(t *testing.T) {
 			Name("foo"),
 			BinaryExpr("-", Literal("1"), Literal("2")),
 		)`},
+		{"*foo = 42", `AssignStmt(
+			DerefExpr(Name("foo")),
+			Literal("42"),
+		)`},
+		{"**foo = 42", `AssignStmt(
+        	DerefExpr(
+        		DerefExpr(Name("foo")),
+        	),
+        	Literal("42"),
+        )`},
 	}
 
 	for _, tt := range tests {

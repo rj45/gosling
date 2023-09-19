@@ -12,6 +12,9 @@ const (
 	BinaryExpr
 	UnaryExpr
 
+	DerefExpr
+	AddrExpr
+
 	StmtList
 	EmptyStmt
 	ExprStmt
@@ -27,6 +30,8 @@ var kindNames = []string{
 	Name:        "Name",
 	BinaryExpr:  "BinaryExpr",
 	UnaryExpr:   "UnaryExpr",
+	DerefExpr:   "DerefExpr",
+	AddrExpr:    "AddrExpr",
 	StmtList:    "StmtList",
 	EmptyStmt:   "EmptyStmt",
 	ExprStmt:    "ExprStmt",

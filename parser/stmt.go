@@ -120,8 +120,13 @@ func (p *Parser) simpleStmt() ast.NodeID {
 
 	switch p.tok.Kind() {
 	case token.Assign:
-		if p.ast.Kind(lhs) != ast.Name {
-			p.errorAt(p.ast.Token(lhs), "expected name on the left side of the assignment")
+		node := lhs
+		for p.ast.Kind(node) == ast.DerefExpr {
+			node = p.ast.Child(node, ast.DerefExprExpr)
+		}
+
+		if p.ast.Kind(node) != ast.Name {
+			p.errorAt(p.ast.Token(lhs), "expected name or deref on the left side of the assignment")
 		}
 		return p.ast.AddNode(ast.AssignStmt, p.next(), lhs, p.expr())
 	}
