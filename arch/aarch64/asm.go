@@ -37,7 +37,7 @@ func (g *Assembly) Pop() {
 }
 
 func (g *Assembly) LoadLocal(offset int) {
-	fmt.Printf("  ldr x0, [x29, #%d]\n", offset)
+	fmt.Printf("  ldr x0, [x29, #%d]\n", -offset)
 }
 
 func (g *Assembly) Load() {
@@ -53,7 +53,7 @@ func (g *Assembly) LoadInt(lit string) {
 }
 
 func (g *Assembly) LocalAddr(offset int) {
-	fmt.Printf("  add x0, x29, #%d\n", offset)
+	fmt.Printf("  add x0, x29, #%d\n", -offset)
 }
 
 func (g *Assembly) Add() {

@@ -38,7 +38,7 @@ func TestStmtParseError(t *testing.T) {
 		expected string
 	}{
 		{"{for i = 9 {}}", `expected for condition to be expression statement`},
-		{"{9 = 45}", `expected name on the left side of the assignment`},
+		{"{9 = 45}", `expected name or deref on the left side of the assignment`},
 	}
 
 	for _, tt := range tests {

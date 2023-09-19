@@ -151,7 +151,7 @@ func (g *CodeGen) localOffset(node ast.NodeID) int {
 	switch g.ast.Kind(node) {
 	case ast.Name:
 		sym := g.ast.SymbolOf(node)
-		return -(sym.Offset * g.asm.WordSize())
+		return sym.Offset * g.asm.WordSize()
 	default:
 		panic("unknown addr kind for offset")
 	}
