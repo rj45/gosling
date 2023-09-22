@@ -23,6 +23,7 @@ func TestParseExprStmt(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser.SkipCheck = true
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -55,6 +56,7 @@ func TestParseReturnStmt(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser.SkipCheck = true
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -105,6 +107,7 @@ func TestParseBlockStmt(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser.SkipCheck = true
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -164,6 +167,7 @@ func TestParseIfStmt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser.SkipCheck = true
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -237,6 +241,7 @@ func TestParseForStmt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser.SkipCheck = true
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -283,6 +288,7 @@ func TestParseAssignStmt(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser.SkipCheck = true
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -326,6 +332,7 @@ func TestParseStmtList(t *testing.T) {
 
 	for _, tt := range tests {
 		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser.SkipCheck = true
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)

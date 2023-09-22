@@ -75,12 +75,15 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 }
 
 func (tc *TypeChecker) checkBinaryExpr(node ast.NodeID) {
-	lhs := tc.ast.Type(tc.ast.Child(node, ast.BinaryExprLHS)).Underlying()
-	rhs := tc.ast.Type(tc.ast.Child(node, ast.BinaryExprRHS)).Underlying()
+	lhs := tc.ast.Type(tc.ast.Child(node, ast.BinaryExprLHS))
+	rhs := tc.ast.Type(tc.ast.Child(node, ast.BinaryExprRHS))
 
 	if lhs == nil || rhs == nil {
 		return
 	}
+
+	lhs = lhs.Underlying()
+	rhs = rhs.Underlying()
 
 	switch tc.ast.Token(node).Kind() {
 	case token.Eq, token.Ne:

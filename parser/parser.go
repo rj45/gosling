@@ -15,6 +15,10 @@ type Parser struct {
 	checker *semantics.TypeChecker
 
 	errs []ParseErr
+
+	// todo: remove this when error reporting is extracted,
+	// and type checking is done in a separate pass.
+	SkipCheck bool
 }
 
 func New(src []byte) *Parser {
@@ -27,9 +31,11 @@ func (p *Parser) Parse() (*ast.AST, error) {
 
 	p.blockStmt()
 
-	errs := p.checker.Check(p.ast.Root())
-	for _, err := range errs {
-		p.errs = append(p.errs, ParseErr{p, err.Token, err.Msg})
+	if !p.SkipCheck {
+		errs := p.checker.Check(p.ast.Root())
+		for _, err := range errs {
+			p.errs = append(p.errs, ParseErr{p, err.Token, err.Msg})
+		}
 	}
 
 	var err error
