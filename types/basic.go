@@ -47,7 +47,3 @@ func (b Basic) IsUntyped() bool {
 func (b Basic) Underlying() Type {
 	return b
 }
-
-func (b Basic) IsConst() bool {
-	return false
-}

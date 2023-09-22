@@ -1,9 +1,8 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/rj45/gosling/ast"
+	"github.com/rj45/gosling/errors"
 	"github.com/rj45/gosling/semantics"
 	"github.com/rj45/gosling/token"
 )
@@ -14,7 +13,7 @@ type Parser struct {
 	ast     *ast.AST
 	checker *semantics.TypeChecker
 
-	errs []ParseErr
+	errs []*errors.Err
 
 	// todo: remove this when error reporting is extracted,
 	// and type checking is done in a separate pass.
@@ -33,9 +32,7 @@ func (p *Parser) Parse() (*ast.AST, error) {
 
 	if !p.SkipCheck {
 		errs := p.checker.Check(p.ast.Root())
-		for _, err := range errs {
-			p.errs = append(p.errs, ParseErr{p, err.Token, err.Msg})
-		}
+		p.errs = append(p.errs, errs...)
 	}
 
 	var err error
@@ -85,7 +82,7 @@ func (p *Parser) errorAt(tok token.Token, msg string, args ...interface{}) {
 			}
 		}
 	}
-	p.errs = append(p.errs, ParseErr{p, tok, fmt.Sprintf(msg, args...)})
+	p.errs = append(p.errs, errors.Newf(p.src, tok, msg, args...))
 }
 
 func (p *Parser) errorIllegalToken() {
@@ -93,4 +90,10 @@ func (p *Parser) errorIllegalToken() {
 	pos := p.tok.Offset()
 	p.tok = p.tok.NextValidToken(p.src)
 	p.errorAt(tok, "illegal token %q", p.src[pos:p.tok.Offset()])
+}
+
+var tokenErrStrs = map[token.Kind]string{
+	token.EOF:       "end of file",
+	token.Semicolon: "newline or ';' or '}'",
+	token.RBrace:    "'}'",
 }
