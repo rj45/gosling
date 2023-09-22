@@ -18,6 +18,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	gen := codegen.New(ast, &aarch64.Assembly{})
+	gen := codegen.New(ast, &aarch64.Assembly{Out: os.Stdout})
 	gen.Generate()
 }

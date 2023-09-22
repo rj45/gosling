@@ -1,8 +1,12 @@
 package aarch64
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 type Assembly struct {
+	Out   io.Writer
 	depth int
 }
 
@@ -10,14 +14,18 @@ func align(n int, align int) int {
 	return (n + align - 1) / align * align
 }
 
+func (g *Assembly) printf(format string, args ...interface{}) {
+	fmt.Fprintf(g.Out, format+"\n", args...)
+}
+
 func (g *Assembly) Prologue(stacksize int) {
-	fmt.Println(".text")
-	fmt.Println(".global _main")
-	fmt.Println(".align 2")
-	fmt.Println("_main:")
-	fmt.Println("  stp x29, x30, [sp, #-16]!")
-	fmt.Println("  mov x29, sp")
-	fmt.Println("  sub sp, sp, #" + fmt.Sprintf("%d", align(stacksize*g.WordSize(), 16)))
+	g.printf(".text")
+	g.printf(".global _main")
+	g.printf(".align 2")
+	g.printf("_main:")
+	g.printf("  stp x29, x30, [sp, #-16]!")
+	g.printf("  mov x29, sp")
+	g.printf("  sub sp, sp, #%d", align(stacksize*g.WordSize(), 16))
 }
 
 func (g *Assembly) WordSize() int {
@@ -27,109 +35,109 @@ func (g *Assembly) WordSize() int {
 func (g *Assembly) Push() {
 	g.depth++
 	// note: stack is 16-byte aligned, so this is wasteful, we will fix that later
-	fmt.Println("  str x0, [sp, #-16]!")
+	g.printf("  str x0, [sp, #-16]!")
 }
 
 func (g *Assembly) Pop() {
 	g.depth--
 	// note: stack is 16-byte aligned, so this is wasteful, we will fix that later
-	fmt.Println("  ldr x1, [sp], #16")
+	g.printf("  ldr x1, [sp], #16")
 }
 
 func (g *Assembly) LoadLocal(offset int) {
-	fmt.Printf("  ldr x0, [x29, #%d]\n", -offset)
+	g.printf("  ldr x0, [x29, #%d]\n", -offset)
 }
 
 func (g *Assembly) Load() {
-	fmt.Println("  ldr x0, [x0]")
+	g.printf("  ldr x0, [x0]")
 }
 
 func (g *Assembly) Store() {
-	fmt.Println("  str x0, [x1]")
+	g.printf("  str x0, [x1]")
 }
 
 func (g *Assembly) LoadInt(lit string) {
-	fmt.Println("  mov x0, #" + lit)
+	g.printf("  mov x0, #" + lit)
 }
 
 func (g *Assembly) LocalAddr(offset int) {
-	fmt.Printf("  add x0, x29, #%d\n", -offset)
+	g.printf("  add x0, x29, #%d\n", -offset)
 }
 
 func (g *Assembly) Add() {
-	fmt.Println("  add x0, x1, x0")
+	g.printf("  add x0, x1, x0")
 }
 
 func (g *Assembly) Sub() {
-	fmt.Println("  sub x0, x1, x0")
+	g.printf("  sub x0, x1, x0")
 }
 
 func (g *Assembly) Mul() {
-	fmt.Println("  mul x0, x1, x0")
+	g.printf("  mul x0, x1, x0")
 }
 
 func (g *Assembly) Div() {
-	fmt.Println("  sdiv x0, x1, x0")
+	g.printf("  sdiv x0, x1, x0")
 }
 
 func (g *Assembly) Neg() {
-	fmt.Println("  neg x0, x0")
+	g.printf("  neg x0, x0")
 }
 
 func (g *Assembly) Eq() {
-	fmt.Println("  cmp x1, x0")
-	fmt.Println("  cset x0, eq")
+	g.printf("  cmp x1, x0")
+	g.printf("  cset x0, eq")
 }
 
 func (g *Assembly) Ne() {
-	fmt.Println("  cmp x1, x0")
-	fmt.Println("  cset x0, ne")
+	g.printf("  cmp x1, x0")
+	g.printf("  cset x0, ne")
 }
 
 func (g *Assembly) Lt() {
-	fmt.Println("  cmp x1, x0")
-	fmt.Println("  cset x0, lt")
+	g.printf("  cmp x1, x0")
+	g.printf("  cset x0, lt")
 }
 
 func (g *Assembly) Le() {
-	fmt.Println("  cmp x1, x0")
-	fmt.Println("  cset x0, le")
+	g.printf("  cmp x1, x0")
+	g.printf("  cset x0, le")
 }
 
 func (g *Assembly) Gt() {
-	fmt.Println("  cmp x1, x0")
-	fmt.Println("  cset x0, gt")
+	g.printf("  cmp x1, x0")
+	g.printf("  cset x0, gt")
 }
 
 func (g *Assembly) Ge() {
-	fmt.Println("  cmp x1, x0")
-	fmt.Println("  cset x0, ge")
+	g.printf("  cmp x1, x0")
+	g.printf("  cset x0, ge")
 }
 
 func (g *Assembly) JumpToEpilogue() {
-	fmt.Println("  b .L.epilogue")
+	g.printf("  b .L.epilogue")
 }
 
 func (g *Assembly) JumpIfFalse(label string, count int) {
-	fmt.Println("  cmp x0, #0")
-	fmt.Printf("  b.eq .L.%s.%d\n", label, count)
+	g.printf("  cmp x0, #0")
+	g.printf("  b.eq .L.%s.%d\n", label, count)
 }
 
 func (g *Assembly) Jump(label string, count int) {
-	fmt.Printf("  b .L.%s.%d\n", label, count)
+	g.printf("  b .L.%s.%d\n", label, count)
 }
 
 func (g *Assembly) Label(label string, count int) {
-	fmt.Printf(".L.%s.%d:\n", label, count)
+	g.printf(".L.%s.%d:\n", label, count)
 }
 
 func (g *Assembly) Epilogue() {
-	fmt.Println(".L.epilogue:")
-	fmt.Println("  mov sp, x29")
-	fmt.Println("  ldp x29, x30, [sp], #16")
-	fmt.Println("  mov x16, #1") // syscall number for exit()
-	fmt.Println("  svc #0")      // syscall
-	fmt.Println("  ret")
+	g.printf(".L.epilogue:")
+	g.printf("  mov sp, x29")
+	g.printf("  ldp x29, x30, [sp], #16")
+	g.printf("  mov x16, #1") // syscall number for exit()
+	g.printf("  svc #0")      // syscall
+	g.printf("  ret")
 
 	if g.depth != 0 {
 		panic("unbalanced stack")
