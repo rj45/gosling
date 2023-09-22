@@ -6,6 +6,7 @@ import (
 
 	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/parser"
+	"github.com/rj45/gosling/semantics"
 )
 
 func ParseStmt(src string) (*ast.AST, ast.NodeID, error) {
@@ -13,6 +14,10 @@ func ParseStmt(src string) (*ast.AST, ast.NodeID, error) {
 	a, err := parser.Parse()
 	if err != nil {
 		return nil, ast.InvalidNode, err
+	}
+	errs := semantics.NewTypeChecker(a).Check(a.Root())
+	if len(errs) > 0 {
+		return nil, ast.InvalidNode, errs[0]
 	}
 	node := a.Root()
 	node = a.Child(node, a.NumChildren(node)-1)

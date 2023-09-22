@@ -9,6 +9,7 @@ import (
 	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/codegen"
 	"github.com/rj45/gosling/parser"
+	"github.com/rj45/gosling/semantics"
 	"github.com/rj45/gosling/vm"
 )
 
@@ -262,6 +263,13 @@ func TestCodegenWithVirtualMachine(t *testing.T) {
 			if err != nil {
 				t.Errorf("Expected no error, but got %s", err)
 			}
+			errs := semantics.NewTypeChecker(a).Check(a.Root())
+			if len(errs) > 0 {
+				for _, err := range errs {
+					t.Errorf("Expected no error, but got %s", err)
+				}
+				os.Exit(1)
+			}
 			actual := execute(a)
 			if actual != tt.output {
 				t.Errorf("Expected: %d; but got: %d", tt.output, actual)
@@ -279,6 +287,13 @@ func TestCodegenWithAssembler(t *testing.T) {
 			a, err := parser.Parse()
 			if err != nil {
 				t.Errorf("Expected no error, but got %s", err)
+			}
+			errs := semantics.NewTypeChecker(a).Check(a.Root())
+			if len(errs) > 0 {
+				for _, err := range errs {
+					t.Errorf("Expected no error, but got %s", err)
+				}
+				os.Exit(1)
 			}
 			tmp, err := os.CreateTemp("", "gosling_*.s")
 			if err != nil {
