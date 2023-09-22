@@ -1,8 +1,11 @@
-package codegen_test
+package main_test
 
 import (
+	"os"
+	"os/exec"
 	"testing"
 
+	"github.com/rj45/gosling/arch/aarch64"
 	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/codegen"
 	"github.com/rj45/gosling/parser"
@@ -261,6 +264,54 @@ func TestCodegenWithVirtualMachine(t *testing.T) {
 			actual := execute(a)
 			if actual != tt.output {
 				t.Errorf("Expected: %d; but got: %d", tt.output, actual)
+			}
+		})
+	}
+}
+
+func TestCodegenWithAssembler(t *testing.T) {
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			parser := parser.New([]byte(tt.input))
+			a, err := parser.Parse()
+			if err != nil {
+				t.Errorf("Expected no error, but got %s", err)
+			}
+			tmp, err := os.CreateTemp("", "gosling_*.s")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.Remove(tmp.Name())
+			codegen := codegen.New(a, &aarch64.Assembly{Out: tmp})
+			codegen.Generate()
+
+			cmd := exec.Command("gcc", "-o", tmp.Name()+".out", tmp.Name())
+			err = cmd.Run()
+			defer os.Remove(tmp.Name() + ".out")
+			if err != nil {
+				t.Errorf("Expected no error, but got %s", err)
+			}
+
+			cmd = exec.Command(tmp.Name() + ".out")
+			_, err = cmd.Output()
+			if err != nil {
+				if tt.output == 0 {
+					t.Errorf("Expected no error, but got %s", err)
+					return
+				}
+				if ee, ok := err.(*exec.ExitError); ok {
+					actual := ee.ExitCode()
+					if actual != tt.output {
+						t.Errorf("Expected: %d; but got: %d", tt.output, actual)
+					}
+					return
+				}
+				t.Errorf("Expected no error, but got %s", err)
+			}
+			if tt.output != 0 && err == nil {
+				t.Errorf("Expected error, but got none")
 			}
 		})
 	}
