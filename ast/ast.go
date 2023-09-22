@@ -38,6 +38,9 @@ type AST struct {
 	// node.FirstChild()
 	child []NodeID
 
+	// typ is the type of each node indexed by NodeID
+	typ []types.Type
+
 	symtab   *types.SymTab
 	nextAddr int
 }
@@ -72,6 +75,22 @@ func (a *AST) Token(id NodeID) token.Token {
 // Token returns the token for the given node
 func (a *AST) Kind(id NodeID) Kind {
 	return a.node[id].kind()
+}
+
+// Type returns the type of the given node
+func (a *AST) Type(id NodeID) types.Type {
+	if id >= NodeID(len(a.typ)) {
+		return nil
+	}
+	return a.typ[id]
+}
+
+// SetType sets the type of the given node
+func (a *AST) SetType(id NodeID, typ types.Type) {
+	for id >= NodeID(len(a.typ)) {
+		a.typ = append(a.typ, nil)
+	}
+	a.typ[id] = typ
 }
 
 // NumChildren returns the number of children for the given node

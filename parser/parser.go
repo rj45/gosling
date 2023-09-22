@@ -4,25 +4,33 @@ import (
 	"fmt"
 
 	"github.com/rj45/gosling/ast"
+	"github.com/rj45/gosling/semantics"
 	"github.com/rj45/gosling/token"
 )
 
 type Parser struct {
-	src []byte
-	tok token.Token
-	ast *ast.AST
+	src     []byte
+	tok     token.Token
+	ast     *ast.AST
+	checker *semantics.TypeChecker
 
 	errs []ParseErr
 }
 
 func New(src []byte) *Parser {
-	return &Parser{src: src, ast: ast.New(src)}
+	ast := ast.New(src)
+	return &Parser{src: src, ast: ast, checker: semantics.NewTypeChecker(ast)}
 }
 
 func (p *Parser) Parse() (*ast.AST, error) {
 	p.next()
 
 	p.blockStmt()
+
+	errs := p.checker.Check(p.ast.Root())
+	for _, err := range errs {
+		p.errs = append(p.errs, ParseErr{p, err.Token, err.Msg})
+	}
 
 	var err error
 	if len(p.errs) > 0 {
