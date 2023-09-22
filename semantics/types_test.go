@@ -157,6 +157,42 @@ func TestTypeChecking(t *testing.T) {
 			expected: "",
 			err:      "invalid return statement",
 		},
+		{
+			name:     "if expression",
+			src:      "a = if true {1} else {2}; a",
+			expected: "int",
+			err:      "",
+		},
+		{
+			name:     "if expression with mismatched types",
+			src:      "a = if true {true} else {2}",
+			expected: "",
+			err:      "if branches have mismatched types: bool and untyped int",
+		},
+		{
+			name:     "if expression as statement does not get error",
+			src:      "if true {true} else {2}",
+			expected: "bool",
+			err:      "",
+		},
+		{
+			name:     "if expression with untyped int becomes int",
+			src:      "a = 2; b = if true {2} else {a}; b",
+			expected: "int",
+			err:      "",
+		},
+		{
+			name:     "block expression",
+			src:      "a = {true; 2}; a",
+			expected: "int",
+			err:      "",
+		},
+		{
+			name:     "block expression",
+			src:      "a = true; a = {true; 2}; a",
+			expected: "",
+			err:      "cannot assign int to bool",
+		},
 	}
 
 	for _, tt := range tests {

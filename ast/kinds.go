@@ -20,7 +20,7 @@ const (
 	ExprStmt
 	AssignStmt
 	ReturnStmt
-	IfStmt
+	IfExpr
 	ForStmt
 )
 
@@ -37,7 +37,7 @@ var kindNames = []string{
 	ExprStmt:    "ExprStmt",
 	AssignStmt:  "AssignStmt",
 	ReturnStmt:  "ReturnStmt",
-	IfStmt:      "IfStmt",
+	IfExpr:      "IfExpr",
 	ForStmt:     "ForStmt",
 }
 

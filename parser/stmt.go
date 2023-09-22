@@ -29,11 +29,11 @@ func (p *Parser) stmt() ast.NodeID {
 		}
 		return stmt
 	case token.If:
-		return p.ifStmt()
+		return p.ifExpr()
 	case token.For:
 		return p.forStmt()
 	case token.LBrace:
-		return p.blockStmt()
+		return p.block()
 	default:
 		stmt := p.simpleStmt()
 		if p.tok.Kind() != token.RBrace {
@@ -41,26 +41,6 @@ func (p *Parser) stmt() ast.NodeID {
 		}
 		return stmt
 	}
-}
-
-// blockStmt = "{" stmtList "}"
-func (p *Parser) blockStmt() ast.NodeID {
-	p.expect(token.LBrace)
-	stmts := p.stmtList()
-	p.expect(token.RBrace)
-	return stmts
-}
-
-// ifStmt = "if" expr blockStmt ("else" blockStmt)?
-func (p *Parser) ifStmt() ast.NodeID {
-	tok := p.expect(token.If)
-	cond := p.expr()
-	then := p.blockStmt()
-	if p.tok.Kind() != token.Else {
-		return p.ast.AddNode(ast.IfStmt, tok, cond, then, ast.InvalidNode)
-	}
-	p.expect(token.Else)
-	return p.ast.AddNode(ast.IfStmt, tok, cond, then, p.blockStmt())
 }
 
 // forStmt = "for" simpleStmt ";" expr ";" simpleStmt blockStmt
@@ -85,7 +65,7 @@ func (p *Parser) forStmt() ast.NodeID {
 		post = p.simpleStmt()
 	}
 
-	body := p.blockStmt()
+	body := p.block()
 
 	if init != ast.InvalidNode && cond == ast.InvalidNode && post == ast.InvalidNode {
 		cond = init

@@ -241,6 +241,21 @@ var tests = []struct {
 		input:  `{ x=3; y=&x; *y=5; return x; }`,
 		output: 5,
 	},
+	{
+		name:   "if expression then value",
+		input:  `{ a = if true {1} else {2}; 5; return a }`,
+		output: 1,
+	},
+	{
+		name:   "if expression else value",
+		input:  `{ a = if false {1} else {2}; 5; return a }`,
+		output: 2,
+	},
+	{
+		name:   "block expression",
+		input:  `{ a = {true; 42}; return a }`,
+		output: 42,
+	},
 }
 
 func TestCodegenWithVirtualMachine(t *testing.T) {

@@ -43,6 +43,13 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 		tc.check(child)
 	}
 
+	// extra checks for children used in expressions
+	if tc.ast.Kind(node) != ast.StmtList {
+		for _, child := range tc.ast.Children(node) {
+			tc.checkExprChild(node, child)
+		}
+	}
+
 	switch tc.ast.Kind(node) {
 	case ast.BinaryExpr:
 		tc.checkBinaryExpr(node)
@@ -58,18 +65,54 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 		tc.checkName(node)
 	case ast.AssignStmt:
 		tc.checkAssignStmt(node)
-	case ast.IfStmt:
-		tc.checkIfStmt(node)
+	case ast.IfExpr:
+		tc.checkIfExpr(node)
 	case ast.ForStmt:
 		tc.checkForStmt(node)
 	case ast.ReturnStmt:
 		tc.checkReturnStmt(node)
 	case ast.ExprStmt:
 		tc.ast.SetType(node, tc.ast.Type(tc.ast.Child(node, ast.ExprStmtExpr)))
-	case ast.StmtList, ast.EmptyStmt:
+	case ast.StmtList:
+		tc.ast.SetType(node, tc.ast.Type(tc.ast.Child(node, tc.ast.NumChildren(node)-1)))
+	case ast.EmptyStmt:
 		// nothing to do
 	default:
 		panic("todo: implement node kind " + tc.ast.Kind(node).String())
+	}
+}
+
+// checkExprChild checks types when a child is used in an expression.
+// Useful for checking things that can be either statements or expressions.
+func (tc *TypeChecker) checkExprChild(parent, child ast.NodeID) {
+	switch tc.ast.Kind(child) {
+	case ast.IfExpr:
+		then := tc.ast.Child(child, ast.IfExprThen)
+		els := tc.ast.Child(child, ast.IfExprElse)
+
+		if els == ast.InvalidNode {
+			// else branch will get the zero value of type
+			return
+		}
+
+		thenType := tc.ast.Type(then)
+		elsType := tc.ast.Type(els)
+		if thenType != nil && elsType != nil {
+			// todo: move this coercion logic to central place
+			if thenType == types.UntypedInt && elsType == types.Int {
+				tc.ast.SetType(then, types.Int)
+				thenType = types.Int
+			}
+
+			if thenType == types.Int && elsType == types.UntypedInt {
+				tc.ast.SetType(els, types.Int)
+				elsType = types.Int
+			}
+
+			if thenType != elsType {
+				tc.errorf(parent, "if branches have mismatched types: %s and %s", thenType, elsType)
+			}
+		}
 	}
 }
 
@@ -191,8 +234,8 @@ func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
 	tc.ast.SetType(node, lhsType)
 }
 
-func (tc *TypeChecker) checkIfStmt(node ast.NodeID) {
-	cond := tc.ast.Child(node, ast.IfStmtCond)
+func (tc *TypeChecker) checkIfExpr(node ast.NodeID) {
+	cond := tc.ast.Child(node, ast.IfExprCond)
 	condType := tc.ast.Type(cond)
 	if condType == nil {
 		return
@@ -200,6 +243,11 @@ func (tc *TypeChecker) checkIfStmt(node ast.NodeID) {
 	if tc.ast.Type(cond).Underlying() != types.Bool {
 		tc.errorf(node, "if condition must be bool but was %s", condType)
 		return
+	}
+
+	then := tc.ast.Child(node, ast.IfExprThen)
+	if thenType := tc.ast.Type(then); thenType != nil {
+		tc.ast.SetType(node, thenType)
 	}
 }
 

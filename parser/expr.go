@@ -92,6 +92,10 @@ func (p *Parser) primary() ast.NodeID {
 		expr := p.expr()
 		p.expect(token.RParen)
 		return expr
+	case token.LBrace:
+		return p.block()
+	case token.If:
+		return p.ifExpr()
 	case token.Int:
 		return p.node(ast.Literal, token.Int)
 	case token.Ident:
@@ -102,4 +106,24 @@ func (p *Parser) primary() ast.NodeID {
 		p.error("expected expression")
 		return ast.InvalidNode
 	}
+}
+
+// block = "{" stmtList "}"
+func (p *Parser) block() ast.NodeID {
+	p.expect(token.LBrace)
+	stmts := p.stmtList()
+	p.expect(token.RBrace)
+	return stmts
+}
+
+// ifExpr = "if" expr blockStmt ("else" blockStmt)?
+func (p *Parser) ifExpr() ast.NodeID {
+	tok := p.expect(token.If)
+	cond := p.expr()
+	then := p.block()
+	if p.tok.Kind() != token.Else {
+		return p.ast.AddNode(ast.IfExpr, tok, cond, then, ast.InvalidNode)
+	}
+	p.expect(token.Else)
+	return p.ast.AddNode(ast.IfExpr, tok, cond, then, p.block())
 }

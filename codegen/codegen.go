@@ -76,8 +76,8 @@ func (g *CodeGen) genStmt(node ast.NodeID) {
 		g.genAssignStmt(node)
 	case ast.ReturnStmt:
 		g.genReturnStmt(node)
-	case ast.IfStmt:
-		g.genIfStmt(node)
+	case ast.IfExpr:
+		g.genIfExpr(node)
 	case ast.ForStmt:
 		g.genForStmt(node)
 	case ast.StmtList:
@@ -104,10 +104,10 @@ func (g *CodeGen) genReturnStmt(node ast.NodeID) {
 	g.asm.JumpToEpilogue()
 }
 
-func (g *CodeGen) genIfStmt(node ast.NodeID) {
-	cond := g.ast.Child(node, ast.IfStmtCond)
-	then := g.ast.Child(node, ast.IfStmtThen)
-	els := g.ast.Child(node, ast.IfStmtElse)
+func (g *CodeGen) genIfExpr(node ast.NodeID) {
+	cond := g.ast.Child(node, ast.IfExprCond)
+	then := g.ast.Child(node, ast.IfExprThen)
+	els := g.ast.Child(node, ast.IfExprElse)
 
 	label := g.label
 	g.label++
@@ -196,6 +196,10 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 		g.asm.Load()
 	case ast.AddrExpr:
 		g.genAddr(g.ast.Child(node, ast.AddrExprExpr))
+	case ast.IfExpr:
+		g.genIfExpr(node)
+	case ast.StmtList:
+		g.genStmtList(node)
 	case ast.Literal:
 		g.asm.LoadInt(g.ast.NodeString(node))
 	case ast.Name:

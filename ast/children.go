@@ -21,10 +21,10 @@ const (
 
 	// ReturnStmt has list of Expr children
 
-	// IfStmt has Cond, Then, and Else children
-	IfStmtCond = 0
-	IfStmtThen = 1
-	IfStmtElse = 2
+	// IfExpr has Cond, Then, and Else children
+	IfExprCond = 0
+	IfExprThen = 1
+	IfExprElse = 2
 
 	// ForStmt has Init, Cond, Post, and Body children
 	ForStmtInit = 0
