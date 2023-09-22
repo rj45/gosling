@@ -11,7 +11,7 @@ import (
 type TypeChecker struct {
 	uni  *types.Universe
 	ast  *ast.AST
-	errs []*errors.Err
+	errs []error
 }
 
 // NewTypeChecker creates a new TypeChecker.
@@ -23,7 +23,7 @@ func NewTypeChecker(ast *ast.AST) *TypeChecker {
 }
 
 // Check checks the AST for type errors, labeling the AST with types.
-func (tc *TypeChecker) Check(node ast.NodeID) []*errors.Err {
+func (tc *TypeChecker) Check(node ast.NodeID) []error {
 	tc.check(node)
 	errs := tc.errs
 	tc.errs = nil
@@ -31,7 +31,7 @@ func (tc *TypeChecker) Check(node ast.NodeID) []*errors.Err {
 }
 
 func (tc *TypeChecker) errorf(node ast.NodeID, msg string, args ...interface{}) {
-	tc.errs = append(tc.errs, errors.Newf(tc.ast.Src(), tc.ast.Token(node), msg, args...))
+	tc.errs = append(tc.errs, errors.Newf(tc.ast.Src, tc.ast.Token(node), msg, args...))
 }
 
 func (tc *TypeChecker) check(node ast.NodeID) {

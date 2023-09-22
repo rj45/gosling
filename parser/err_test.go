@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/parser"
 )
 
@@ -19,12 +20,14 @@ func TestExprParseError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
-		a, err := parser.Parse()
+		parser := parser.New(ast.NewFile("test.gos", []byte(tt.src)))
+		a, errs := parser.Parse()
 
-		if err == nil {
+		if errs == nil {
 			t.Errorf("Expected error, but got %s", a)
 		}
+
+		err := errs[0]
 
 		if !strings.Contains(err.Error(), tt.expected) {
 			t.Errorf("Expected: %s\nBut got: %s", tt.expected, err.Error())
@@ -42,12 +45,14 @@ func TestStmtParseError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte(tt.src))
-		a, err := parser.Parse()
+		parser := parser.New(ast.NewFile("test.gos", []byte(tt.src)))
+		a, errs := parser.Parse()
 
-		if err == nil {
+		if errs == nil {
 			t.Errorf("Expected error, but got %s", a)
 		}
+
+		err := errs[0]
 
 		if !strings.Contains(err.Error(), tt.expected) {
 			t.Errorf("Expected: %s\nBut got: %s", tt.expected, err.Error())

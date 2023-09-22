@@ -28,8 +28,7 @@ const InvalidNode NodeID = 0
 // to identify child indices with a constant so the code is more
 // readable.
 type AST struct {
-	// src is the source code
-	src []byte
+	File
 
 	// node is the list of nodes in post-order traversal order
 	node []node
@@ -46,20 +45,15 @@ type AST struct {
 }
 
 // New creates a new AST from the source code
-func New(src []byte) *AST {
+func New(file *File) *AST {
 	return &AST{
-		src: src,
+		File: *file,
 		node: []node{
 			// the first node is always an illegal node
 			newNode(IllegalNode, 0, 0),
 		},
 		symtab: types.NewSymTab(),
 	}
-}
-
-// Src returns the source code
-func (a *AST) Src() []byte {
-	return a.src
 }
 
 // Root returns the root node of the AST
@@ -140,7 +134,7 @@ func (a *AST) AddNode(kind Kind, token token.Token, children ...NodeID) NodeID {
 func (a *AST) PositionOf(tok token.Token) (line int, col int) {
 	offset := tok.Offset()
 	var lineoffset int
-	for i, ch := range a.src {
+	for i, ch := range a.Src {
 		if i >= offset {
 			break
 		}
@@ -170,7 +164,7 @@ func (a *AST) SymbolOf(n NodeID) *types.Symbol {
 // NodeBytes returns a cheap byte slice of the node text
 func (a *AST) NodeBytes(id NodeID) []byte {
 	t := a.node[id].token()
-	return a.src[t.Offset():t.EndOfToken(a.src)]
+	return a.Src[t.Offset():t.EndOfToken(a.Src)]
 }
 
 // NodeString allocates a new string copy of the node text

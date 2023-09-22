@@ -18,7 +18,7 @@ func TestParsePrimaryExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -48,7 +48,7 @@ func TestParseAddExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -106,7 +106,7 @@ func TestParseMulExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -159,7 +159,7 @@ func TestParseUrnaryExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)
@@ -193,7 +193,7 @@ func TestParseCompareExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New([]byte("{" + tt.src + "}"))
+		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
 		a, err := parser.Parse()
 		if err != nil {
 			t.Errorf("Expected no error, but got %s", err)

@@ -7,34 +7,28 @@ import (
 )
 
 type Parser struct {
-	src []byte
-	tok token.Token
 	ast *ast.AST
 
-	errs []*errors.Err
+	tok token.Token
+
+	errs []error
 }
 
-func New(src []byte) *Parser {
-	ast := ast.New(src)
-	return &Parser{src: src, ast: ast}
+func New(file *ast.File) *Parser {
+	return &Parser{ast: ast.New(file)}
 }
 
-func (p *Parser) Parse() (*ast.AST, error) {
+func (p *Parser) Parse() (*ast.AST, []error) {
 	p.next()
 
 	p.blockStmt()
 
-	var err error
-	if len(p.errs) > 0 {
-		err = p.errs[0]
-	}
-
-	return p.ast, err
+	return p.ast, p.errs
 }
 
 func (p *Parser) next() token.Token {
 	tok := p.tok
-	p.tok = p.tok.Next(p.src)
+	p.tok = p.tok.Next(p.ast.Src)
 
 	if p.tok.Kind() == token.Illegal {
 		p.errorIllegalToken()
@@ -71,14 +65,14 @@ func (p *Parser) errorAt(tok token.Token, msg string, args ...interface{}) {
 			}
 		}
 	}
-	p.errs = append(p.errs, errors.Newf(p.src, tok, msg, args...))
+	p.errs = append(p.errs, errors.Newf(p.ast.Src, tok, msg, args...))
 }
 
 func (p *Parser) errorIllegalToken() {
 	tok := p.tok
 	pos := p.tok.Offset()
-	p.tok = p.tok.NextValidToken(p.src)
-	p.errorAt(tok, "illegal token %q", p.src[pos:p.tok.Offset()])
+	p.tok = p.tok.NextValidToken(p.ast.Src)
+	p.errorAt(tok, "illegal token %q", p.ast.Src[pos:p.tok.Offset()])
 }
 
 var tokenErrStrs = map[token.Kind]string{

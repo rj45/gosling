@@ -7,9 +7,7 @@ import (
 
 	"github.com/rj45/gosling/arch/aarch64"
 	"github.com/rj45/gosling/ast"
-	"github.com/rj45/gosling/codegen"
-	"github.com/rj45/gosling/parser"
-	"github.com/rj45/gosling/semantics"
+	"github.com/rj45/gosling/compile"
 	"github.com/rj45/gosling/vm"
 )
 
@@ -245,32 +243,23 @@ var tests = []struct {
 	},
 }
 
-func execute(a *ast.AST) int {
-	asm := vm.NewAsm()
-	codegen := codegen.New(a, asm)
-	codegen.Generate()
-	vm := vm.NewCPU(asm.Program)
-	return vm.Run()
-}
-
 func TestCodegenWithVirtualMachine(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			parser := parser.New([]byte(tt.input))
-			a, err := parser.Parse()
-			if err != nil {
-				t.Errorf("Expected no error, but got %s", err)
-			}
-			errs := semantics.NewTypeChecker(a).Check(a.Root())
+			file := ast.NewFile("test.gos", []byte(tt.input))
+			asm := vm.NewAsm()
+			errs := compile.Compile(file, asm)
+
 			if len(errs) > 0 {
 				for _, err := range errs {
 					t.Errorf("Expected no error, but got %s", err)
 				}
-				os.Exit(1)
 			}
-			actual := execute(a)
+
+			vm := vm.NewCPU(asm.Program)
+			actual := vm.Run()
 			if actual != tt.output {
 				t.Errorf("Expected: %d; but got: %d", tt.output, actual)
 			}
@@ -283,25 +272,23 @@ func TestCodegenWithAssembler(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			parser := parser.New([]byte(tt.input))
-			a, err := parser.Parse()
-			if err != nil {
-				t.Errorf("Expected no error, but got %s", err)
-			}
-			errs := semantics.NewTypeChecker(a).Check(a.Root())
-			if len(errs) > 0 {
-				for _, err := range errs {
-					t.Errorf("Expected no error, but got %s", err)
-				}
-				os.Exit(1)
-			}
+			file := ast.NewFile("test.gos", []byte(tt.input))
+
 			tmp, err := os.CreateTemp("", "gosling_*.s")
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer os.Remove(tmp.Name())
-			codegen := codegen.New(a, &aarch64.Assembly{Out: tmp})
-			codegen.Generate()
+
+			asm := &aarch64.Assembly{Out: tmp}
+
+			errs := compile.Compile(file, asm)
+			if len(errs) > 0 {
+				for _, err := range errs {
+					t.Errorf("Expected no error, but got %s", err)
+				}
+				return
+			}
 
 			cmd := exec.Command("gcc", "-o", tmp.Name()+".out", tmp.Name())
 			err = cmd.Run()

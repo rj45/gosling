@@ -9,15 +9,15 @@ import (
 	"github.com/rj45/gosling/semantics"
 )
 
-func ParseStmt(src string) (*ast.AST, ast.NodeID, error) {
-	parser := parser.New([]byte("{" + src + "}"))
-	a, err := parser.Parse()
-	if err != nil {
-		return nil, ast.InvalidNode, err
+func ParseStmt(src string) (*ast.AST, ast.NodeID, []error) {
+	parser := parser.New(ast.NewFile("test.gos", []byte("{"+src+"}")))
+	a, errs := parser.Parse()
+	if errs != nil {
+		return nil, ast.InvalidNode, errs
 	}
-	errs := semantics.NewTypeChecker(a).Check(a.Root())
-	if len(errs) > 0 {
-		return nil, ast.InvalidNode, errs[0]
+	errs = semantics.NewTypeChecker(a).Check(a.Root())
+	if errs != nil {
+		return nil, ast.InvalidNode, errs
 	}
 	node := a.Root()
 	node = a.Child(node, a.NumChildren(node)-1)
@@ -161,18 +161,20 @@ func TestTypeChecking(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, node, err := ParseStmt(tt.src)
+			a, node, errs := ParseStmt(tt.src)
 
-			if err != nil {
-				if tt.err == "" {
-					t.Errorf("Expected no error, but got %s", err)
-				} else if !strings.Contains(err.Error(), tt.err) {
-					t.Errorf("Expected error to contain %q, but got %q", tt.err, err)
+			if errs != nil {
+				for _, err := range errs {
+					if tt.err == "" {
+						t.Errorf("Expected no error, but got %s", errs)
+					} else if !strings.Contains(err.Error(), tt.err) {
+						t.Errorf("Expected error to contain %q, but got %q", tt.err, err)
+					}
 				}
 				return
 			}
 
-			if err == nil && tt.err != "" {
+			if errs == nil && tt.err != "" {
 				t.Errorf("Expected error %q, but got none", tt.err)
 				return
 			}
