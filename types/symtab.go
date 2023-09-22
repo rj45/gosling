@@ -2,6 +2,8 @@ package types
 
 type Symbol struct {
 	Name   string
+	Type   Type
+	Const  Const
 	Offset int
 }
 
@@ -13,9 +15,14 @@ type SymTab struct {
 }
 
 func NewSymTab() *SymTab {
-	return &SymTab{
+	symtab := &SymTab{
 		NameSym: make(map[string]SymbolID),
 	}
+
+	symtab.InitSym("true", Bool, BoolConst(true))
+	symtab.InitSym("false", Bool, BoolConst(false))
+
+	return symtab
 }
 
 func (t *SymTab) Lookup(name string) *Symbol {
@@ -27,4 +34,10 @@ func (t *SymTab) Lookup(name string) *Symbol {
 		return &t.Sym[id]
 	}
 	return &t.Sym[id]
+}
+
+func (t *SymTab) InitSym(name string, typ Type, c Const) {
+	sym := t.Lookup(name)
+	sym.Type = typ
+	sym.Const = c
 }
