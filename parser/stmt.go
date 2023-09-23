@@ -99,7 +99,7 @@ func (p *Parser) simpleStmt() ast.NodeID {
 	lhs := p.expr()
 
 	switch p.tok.Kind() {
-	case token.Assign:
+	case token.Assign, token.Define:
 		node := lhs
 		for p.ast.Kind(node) == ast.DerefExpr {
 			node = p.ast.Child(node, ast.DerefExprExpr)

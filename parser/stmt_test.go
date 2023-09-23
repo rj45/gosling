@@ -151,20 +151,25 @@ func TestParseAssignStmt(t *testing.T) {
 		src      string
 		expected string
 	}{
-		{"foo=42", `AssignStmt(Name("foo"), Literal("42"))`},
-		{"foo=1+2", `AssignStmt(
+		{"foo=42", `AssignStmt("=", Name("foo"), Literal("42"))`},
+		{"foo=1+2", `AssignStmt("=",
 			Name("foo"),
 			BinaryExpr("+", Literal("1"), Literal("2")),
 		)`},
-		{"foo=1-2", `AssignStmt(
+		{"foo=1-2", `AssignStmt("=",
 			Name("foo"),
 			BinaryExpr("-", Literal("1"), Literal("2")),
 		)`},
-		{"*foo = 42", `AssignStmt(
+		{"foo:=42", `AssignStmt(":=", Name("foo"), Literal("42"))`},
+		{"foo:=1*2", `AssignStmt(":=",
+			Name("foo"),
+			BinaryExpr("*", Literal("1"), Literal("2")),
+		)`},
+		{"*foo = 42", `AssignStmt("=",
 			DerefExpr(Name("foo")),
 			Literal("42"),
 		)`},
-		{"**foo = 42", `AssignStmt(
+		{"**foo = 42", `AssignStmt("=",
         	DerefExpr(
         		DerefExpr(Name("foo")),
         	),

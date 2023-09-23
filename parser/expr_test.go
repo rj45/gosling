@@ -314,7 +314,7 @@ func TestParseIfExpr(t *testing.T) {
 				),
 			),
 		)`},
-		{"a = if true {1} else {2}", `AssignStmt(
+		{"a = if true {1} else {2}", `AssignStmt("=",
 			Name("a"),
 			IfExpr(
 				Name("true"),

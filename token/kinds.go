@@ -10,7 +10,8 @@ const (
 	Ident
 	Int
 
-	Assign
+	Assign // =
+	Define // :=
 
 	Add
 	Sub

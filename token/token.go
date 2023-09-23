@@ -48,7 +48,7 @@ func (t Token) EndOfToken(src []byte) int {
 
 	case Add, Sub, And, Star, Div, LParen, RParen, LBrace, RBrace, Lt, Gt, Semicolon, Assign:
 		eot++ // For single character tokens (like '+', '-', etc.)
-	case Eq, Ne, Le, Ge:
+	case Eq, Ne, Le, Ge, Define:
 		eot += 2 // For double character tokens (like '==', '!=', etc.)
 	default:
 		panic("todo: handle other tokens")
@@ -143,6 +143,10 @@ skip:
 			return NewToken(Eq, pos)
 		}
 		return NewToken(Assign, pos)
+	case ch == ':':
+		if pos+1 < len(src) && src[pos+1] == '=' {
+			return NewToken(Define, pos)
+		}
 	case ch == '!':
 		if pos+1 < len(src) && src[pos+1] == '=' {
 			return NewToken(Ne, pos)

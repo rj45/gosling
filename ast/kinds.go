@@ -55,5 +55,5 @@ func (k Kind) IsTerminal() bool {
 
 // UsesToken returns true if the node uses a token for its value
 func (k Kind) UsesToken() bool {
-	return k == BinaryExpr || k == UnaryExpr
+	return k == BinaryExpr || k == UnaryExpr || k == AssignStmt
 }

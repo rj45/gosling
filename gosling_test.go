@@ -153,27 +153,27 @@ var tests = []struct {
 	},
 	{
 		name:   "assign variable",
-		input:  `{a=3; return a}`,
+		input:  `{a:=3; return a}`,
 		output: 3,
 	},
 	{
 		name:   "add variables",
-		input:  `{a=3; z=5; return a+z}`,
+		input:  `{a:=3; z:=5; return a+z}`,
 		output: 8,
 	},
 	{
 		name:   "assign variable with letters",
-		input:  `{foo=3; return foo}`,
+		input:  `{foo:=3; return foo}`,
 		output: 3,
 	},
 	{
 		name:   "add variables with letters",
-		input:  `{foo123=3; bar=5; return foo123+bar}`,
+		input:  `{foo123:=3; bar:=5; return foo123+bar}`,
 		output: 8,
 	},
 	{
 		name:   "multiple variables",
-		input:  `{al = 3; bal = 5; baz = 10; return bal + al * 4 - baz}`,
+		input:  `{al := 3; bal := 5; baz := 10; return bal + al * 4 - baz}`,
 		output: 7,
 	},
 	{
@@ -218,7 +218,7 @@ var tests = []struct {
 	},
 	{
 		name:   "for loop",
-		input:  `{ i=0; j=0; for i=0; i<=10; i=i+1 { j=i+j; } return j }`,
+		input:  `{ i:=0; j:=0; for i=0; i<=10; i=i+1 { j=i+j; } return j }`,
 		output: 55,
 	},
 	{
@@ -228,33 +228,38 @@ var tests = []struct {
 	},
 	{
 		name:   "dereference pointer",
-		input:  `{ x=3; return *&x; }`,
+		input:  `{ x:=3; return *&x; }`,
 		output: 3,
 	},
 	{
 		name:   "dereference pointer to pointer",
-		input:  `{ x=3; y=&x; z=&y; return **z; }`,
+		input:  `{ x:=3; y:=&x; z:=&y; return **z; }`,
 		output: 3,
 	},
 	{
 		name:   "modify value through pointer",
-		input:  `{ x=3; y=&x; *y=5; return x; }`,
+		input:  `{ x:=3; y:=&x; *y=5; return x; }`,
 		output: 5,
 	},
 	{
 		name:   "if expression then value",
-		input:  `{ a = if true {1} else {2}; 5; return a }`,
+		input:  `{ a := if true {1} else {2}; 5; return a }`,
 		output: 1,
 	},
 	{
 		name:   "if expression else value",
-		input:  `{ a = if false {1} else {2}; 5; return a }`,
+		input:  `{ a := if false {1} else {2}; 5; return a }`,
 		output: 2,
 	},
 	{
 		name:   "block expression",
-		input:  `{ a = {true; 42}; return a }`,
+		input:  `{ a := {true; 42}; return a }`,
 		output: 42,
+	},
+	{
+		name:   "reassign",
+		input:  `{ a := 1; a = 29; return a }`,
+		output: 29,
 	},
 }
 

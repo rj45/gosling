@@ -202,6 +202,8 @@ func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
 	lhs := tc.ast.Child(node, ast.AssignStmtLHS)
 	rhs := tc.ast.Child(node, ast.AssignStmtRHS)
 
+	isDefine := tc.ast.Token(node).Kind() == token.Define
+
 	lhsType := tc.ast.Type(lhs)
 	rhsType := tc.ast.Type(rhs)
 
@@ -213,17 +215,28 @@ func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
 		rhsType = types.Int
 	}
 
-	if lhsType == nil && tc.ast.Kind(lhs) == ast.Name {
+	if tc.ast.Kind(lhs) == ast.Name {
 		sym := tc.ast.SymbolOf(lhs)
-		if sym == nil {
-			tc.errorf(node, "undefined name %s", tc.ast.NodeString(lhs))
+
+		if isDefine && sym.Type != nil {
+			tc.errorf(node, "cannot redefine %s", tc.ast.NodeString(lhs))
 			return
 		}
 
-		sym.Type = rhsType
-		tc.ast.SetType(lhs, rhsType)
-		tc.ast.SetType(node, rhsType)
-		return
+		if lhsType == nil {
+
+			if sym.Type == nil {
+				if isDefine {
+					sym.Type = rhsType
+					tc.ast.SetType(lhs, rhsType)
+				} else {
+					tc.errorf(node, "undefined name %s", tc.ast.NodeString(lhs))
+					return
+				}
+			}
+
+			lhsType = sym.Type
+		}
 	}
 
 	if lhsType != rhsType {
