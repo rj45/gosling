@@ -347,6 +347,50 @@ func TestParseIfExpr(t *testing.T) {
 	}
 }
 
+func TestParseCallExpr(t *testing.T) {
+	tests := []struct {
+		src      string
+		expected string
+	}{
+		{"foo()", `ExprStmt(
+        	CallExpr(
+        		Name("foo"),
+        		ExprList(),
+        	),
+        )`},
+		{"foo(1)", `ExprStmt(
+        	CallExpr(
+        		Name("foo"),
+        		ExprList(Literal("1")),
+        	),
+        )`},
+		{"foo(1, 2)", `ExprStmt(
+        	CallExpr(
+        		Name("foo"),
+        		ExprList(Literal("1"), Literal("2")),
+        	),
+        )`},
+	}
+	for _, tt := range tests {
+		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
+		a, err := parser.Parse()
+		if err != nil {
+			t.Errorf("Expected no error, but got %s", err)
+		}
+
+		root := a.Root()
+		if a.Kind(root) != ast.StmtList {
+			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+		}
+
+		stmt := a.Child(root, 0)
+
+		if trim(a.StringOf(stmt)) != trim(tt.expected) {
+			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
+		}
+	}
+}
+
 func trim(s string) string {
 	lines := strings.Split(strings.TrimSpace(s), "\n")
 	for i, l := range lines {

@@ -5,7 +5,9 @@ type Kind uint8
 const (
 	Illegal Kind = iota
 	EOF
+
 	Semicolon
+	Comma
 
 	Ident
 	Int
@@ -44,6 +46,7 @@ var kindStrs = [...]string{
 	Illegal:   "Illegal",
 	EOF:       "EOF",
 	Semicolon: "Semicolon",
+	Comma:     "Comma",
 	Ident:     "Ident",
 	Int:       "Int",
 	Assign:    "Assign",

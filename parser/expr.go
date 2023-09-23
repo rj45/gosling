@@ -101,11 +101,37 @@ func (p *Parser) primary() ast.NodeID {
 	case token.Ident:
 		node := p.node(ast.Name, token.Ident)
 		p.ast.SymbolOf(node) // generate address
+		if p.tok.Kind() == token.LParen {
+			return p.ast.AddNode(ast.CallExpr, p.tok, node, p.argList())
+		}
 		return node
 	default:
 		p.error("expected expression")
 		return ast.InvalidNode
 	}
+}
+
+// argList = "(" (expr ("," expr)*)? ")"
+func (p *Parser) argList() ast.NodeID {
+	p.expect(token.LParen)
+	if p.tok.Kind() == token.RParen {
+		p.next()
+		return p.ast.AddNode(ast.ExprList, p.tok)
+	}
+	args := p.exprList()
+	p.expect(token.RParen)
+	return args
+}
+
+// exprList = expr ("," expr)*
+func (p *Parser) exprList() ast.NodeID {
+	tok := p.tok
+	nodes := []ast.NodeID{p.expr()}
+	for p.tok.Kind() == token.Comma {
+		p.next()
+		nodes = append(nodes, p.expr())
+	}
+	return p.ast.AddNode(ast.ExprList, tok, nodes...)
 }
 
 // block = "{" stmtList "}"

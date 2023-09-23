@@ -1,6 +1,8 @@
 package ast
 
 const (
+	// ExprList has a list of Expr children
+
 	// BinaryExpr has LHS and RHS children
 	BinaryExprLHS = 0
 	BinaryExprRHS = 1
@@ -37,4 +39,8 @@ const (
 
 	// AddrExpr has Expr child
 	AddrExprExpr = 0
+
+	// CallExpr has Name child and an ExprList of arguments
+	CallExprName = 0
+	CallExprArgs = 1
 )

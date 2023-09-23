@@ -9,11 +9,12 @@ const (
 	Literal
 	Name
 
+	ExprList
 	BinaryExpr
 	UnaryExpr
-
 	DerefExpr
 	AddrExpr
+	CallExpr
 
 	StmtList
 	EmptyStmt
@@ -28,10 +29,12 @@ var kindNames = []string{
 	IllegalNode: "IllegalNode",
 	Literal:     "Literal",
 	Name:        "Name",
+	ExprList:    "ExprList",
 	BinaryExpr:  "BinaryExpr",
 	UnaryExpr:   "UnaryExpr",
 	DerefExpr:   "DerefExpr",
 	AddrExpr:    "AddrExpr",
+	CallExpr:    "CallExpr",
 	StmtList:    "StmtList",
 	EmptyStmt:   "EmptyStmt",
 	ExprStmt:    "ExprStmt",

@@ -51,6 +51,8 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 	}
 
 	switch tc.ast.Kind(node) {
+	case ast.ExprList:
+		// todo: maybe have a tuple type?
 	case ast.BinaryExpr:
 		tc.checkBinaryExpr(node)
 	case ast.UnaryExpr:
@@ -59,6 +61,8 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 		tc.checkDerefExpr(node)
 	case ast.AddrExpr:
 		tc.checkAddrExpr(node)
+	case ast.CallExpr:
+		tc.checkCallExpr(node)
 	case ast.Literal:
 		tc.checkLiteral(node)
 	case ast.Name:
@@ -178,6 +182,26 @@ func (tc *TypeChecker) checkAddrExpr(node ast.NodeID) {
 	}
 
 	tc.ast.SetType(node, tc.uni.Pointer(typ))
+}
+
+func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
+	name := tc.ast.Child(node, ast.CallExprName)
+
+	sym := tc.ast.SymbolOf(name)
+	if sym.Type == nil {
+		tc.errorf(node, "cannot call undefined function %s", tc.ast.NodeString(name))
+		return
+	}
+
+	typ := tc.ast.Type(name)
+	if typ == nil {
+		return
+	}
+
+	if _, ok := typ.(*types.Func); !ok {
+		tc.errorf(node, "cannot call non-function %s of type %s", tc.ast.NodeString(name), typ)
+		return
+	}
 }
 
 func (tc *TypeChecker) checkLiteral(node ast.NodeID) {

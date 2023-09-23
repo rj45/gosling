@@ -205,6 +205,18 @@ func TestTypeChecking(t *testing.T) {
 			expected: "",
 			err:      "cannot redefine a",
 		},
+		{
+			name:     "function call to undefined function",
+			src:      "a := foo(); a",
+			expected: "",
+			err:      "cannot call undefined function foo",
+		},
+		{
+			name:     "function call to non function",
+			src:      "a := 1; a()",
+			expected: "",
+			err:      "cannot call non-function a of type int",
+		},
 	}
 
 	for _, tt := range tests {
