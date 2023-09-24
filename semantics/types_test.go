@@ -21,7 +21,7 @@ func parse(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
 		t.Errorf("Expected DeclList, but got %s", a.Kind(root))
 	}
 
-	errs = semantics.NewTypeChecker(a).Check(root)
+	_, errs = semantics.NewTypeChecker(a).Check(root)
 	if errs != nil {
 		return nil, ast.InvalidNode, errs
 	}
@@ -231,6 +231,12 @@ func TestTypeChecking(t *testing.T) {
 			err:      "cannot redefine a",
 		},
 		{
+			name:     "variable used in wrong scope",
+			src:      "{a := 1}; a",
+			expected: "",
+			err:      "undefined name a",
+		},
+		{
 			name:     "function call to undefined function",
 			src:      "a := foo(); a",
 			expected: "",
@@ -304,7 +310,7 @@ func TestTypeCheckingDecls(t *testing.T) {
 			name:     "bad function return type",
 			src:      "func foo() bar {}",
 			expected: "",
-			err:      "function foo has invalid return type bar",
+			err:      "undefined name bar",
 		},
 	}
 
@@ -327,13 +333,12 @@ func TestTypeCheckingDecls(t *testing.T) {
 			node = a.Child(node, 0)
 
 			if errs != nil {
-				for _, err := range errs {
-					if tt.err == "" {
-						t.Errorf("Expected no error, but got %s", errs)
-					} else if !strings.Contains(err.Error(), tt.err) {
-						t.Errorf("Expected error to contain %q, but got %q", tt.err, err)
-					}
+				if tt.err == "" {
+					t.Errorf("Expected no error, but got %s", errs)
+				} else if !strings.Contains(errs[0].Error(), tt.err) {
+					t.Errorf("Expected error to contain %q, but got %q", tt.err, errs[0])
 				}
+
 				return
 			}
 

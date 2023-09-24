@@ -9,25 +9,27 @@ import (
 
 // TypeChecker is a semantic analyzer that checks the AST for type errors.
 type TypeChecker struct {
-	uni  *types.Universe
-	ast  *ast.AST
-	errs []error
+	uni    *types.Universe
+	symtab *ast.SymTab
+	ast    *ast.AST
+	errs   []error
 }
 
 // NewTypeChecker creates a new TypeChecker.
-func NewTypeChecker(ast *ast.AST) *TypeChecker {
+func NewTypeChecker(a *ast.AST) *TypeChecker {
 	return &TypeChecker{
-		uni: types.NewUniverse(),
-		ast: ast,
+		uni:    types.NewUniverse(),
+		ast:    a,
+		symtab: ast.NewSymTab(),
 	}
 }
 
 // Check checks the AST for type errors, labeling the AST with types.
-func (tc *TypeChecker) Check(node ast.NodeID) []error {
+func (tc *TypeChecker) Check(node ast.NodeID) (*ast.SymTab, []error) {
 	tc.check(node)
 	errs := tc.errs
 	tc.errs = nil
-	return errs
+	return tc.symtab, errs
 }
 
 func (tc *TypeChecker) errorf(node ast.NodeID, msg string, args ...interface{}) {
@@ -39,6 +41,31 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 		return
 	}
 
+	// pre-checks before checking children
+	switch tc.ast.Kind(node) {
+	case ast.DeclList:
+		tc.symtab.EnterScope(node)
+		defer tc.symtab.LeaveScope()
+		for _, child := range tc.ast.Children(node) {
+			if tc.ast.Kind(child) == ast.FuncDecl {
+				// define functions first
+				// this way they can be in any order
+				tc.defineFunc(child)
+			}
+		}
+
+	case ast.AssignStmt:
+		// ensure defined variables are created in the symtab
+		tc.defineAssignStmt(node)
+	case ast.FuncDecl:
+		tc.symtab.EnterScope(node)
+		defer tc.symtab.LeaveScope()
+	case ast.StmtList:
+		tc.symtab.EnterScope(node)
+		defer tc.symtab.LeaveScope()
+	}
+
+	// check children
 	for _, child := range tc.ast.Children(node) {
 		tc.check(child)
 	}
@@ -124,34 +151,59 @@ func (tc *TypeChecker) checkExprChild(parent, child ast.NodeID) {
 	}
 }
 
-func (tc *TypeChecker) checkFuncDecl(node ast.NodeID) {
+// defineFunc gathers function declarations in the symtab before checking them.
+func (tc *TypeChecker) defineFunc(node ast.NodeID) {
 	name := tc.ast.Child(node, ast.FuncDeclName)
+	if tc.symtab.Lookup(tc.ast.NodeString(name)) != nil {
+		tc.errorf(node, "cannot redefine function %s", tc.ast.NodeString(name))
+	}
+
 	ret := tc.ast.Child(node, ast.FuncDeclRet)
 
-	sym := tc.ast.SymbolOf(name)
-
-	if sym.Type != nil {
-		tc.errorf(node, "cannot redefine function %s", tc.ast.NodeString(name))
-		return
-	}
+	var typ types.Type
 
 	if ret == ast.InvalidNode {
-		// todo: check for return statements
-		sym.Type = tc.uni.Func(nil)
-		tc.ast.SetType(name, sym.Type)
-		tc.ast.SetType(node, sym.Type)
+		typ = tc.uni.Func(nil)
+	} else {
+		tc.check(ret)
+		typ = tc.uni.Func(tc.ast.Type(ret))
+	}
+
+	tc.symtab.NewSymbol(tc.ast.NodeString(name), ast.FuncSymbol, typ)
+}
+
+func (tc *TypeChecker) defineAssignStmt(node ast.NodeID) {
+	if tc.ast.Token(node).Kind() != token.Define {
 		return
 	}
 
-	retType := tc.ast.Type(ret)
+	lhs := tc.ast.Child(node, ast.AssignStmtLHS)
 
-	if retType == nil {
-		tc.errorf(node, "function %s has invalid return type %s", tc.ast.NodeString(name), tc.ast.NodeString(ret))
+	if tc.ast.Kind(lhs) != ast.Name {
+		tc.errorf(node, "cannot define non-name %s", tc.ast.NodeString(lhs))
 		return
 	}
 
-	sym.Type = tc.uni.Func(retType)
-	tc.ast.SetType(name, sym.Type)
+	if tc.symtab.Lookup(tc.ast.NodeString(lhs)) != nil {
+		tc.errorf(node, "cannot redefine %s", tc.ast.NodeString(lhs))
+		return
+	}
+
+	rhs := tc.ast.Child(node, ast.AssignStmtRHS)
+	tc.check(rhs)
+	rhsType := tc.ast.Type(rhs)
+
+	if rhsType == types.UntypedInt {
+		rhsType = types.Int
+	}
+
+	tc.symtab.NewSymbol(tc.ast.NodeString(lhs), ast.VarSymbol, rhsType)
+}
+
+func (tc *TypeChecker) checkFuncDecl(node ast.NodeID) {
+	name := tc.ast.Child(node, ast.FuncDeclName)
+
+	sym := tc.symtab.Lookup(tc.ast.NodeString(name))
 
 	tc.ast.SetType(node, sym.Type)
 
@@ -225,8 +277,10 @@ func (tc *TypeChecker) checkAddrExpr(node ast.NodeID) {
 func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
 	name := tc.ast.Child(node, ast.CallExprName)
 
-	sym := tc.ast.SymbolOf(name)
-	if sym.Type == nil {
+	sym := tc.symtab.Lookup(tc.ast.NodeString(name))
+	if sym == nil {
+		// remove the "undefined name" error
+		tc.errs = tc.errs[:len(tc.errs)-1]
 		tc.errorf(node, "cannot call undefined function %s", tc.ast.NodeString(name))
 		return
 	}
@@ -252,7 +306,7 @@ func (tc *TypeChecker) checkLiteral(node ast.NodeID) {
 }
 
 func (tc *TypeChecker) checkName(node ast.NodeID) {
-	sym := tc.ast.SymbolOf(node)
+	sym := tc.symtab.Lookup(tc.ast.NodeString(node))
 	if sym == nil {
 		tc.errorf(node, "undefined name %s", tc.ast.NodeString(node))
 		return
@@ -264,12 +318,10 @@ func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
 	lhs := tc.ast.Child(node, ast.AssignStmtLHS)
 	rhs := tc.ast.Child(node, ast.AssignStmtRHS)
 
-	isDefine := tc.ast.Token(node).Kind() == token.Define
-
 	lhsType := tc.ast.Type(lhs)
 	rhsType := tc.ast.Type(rhs)
 
-	if rhsType == nil {
+	if rhsType == nil || lhsType == nil {
 		return
 	}
 
@@ -277,31 +329,7 @@ func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
 		rhsType = types.Int
 	}
 
-	if tc.ast.Kind(lhs) == ast.Name {
-		sym := tc.ast.SymbolOf(lhs)
-
-		if isDefine && sym.Type != nil {
-			tc.errorf(node, "cannot redefine %s", tc.ast.NodeString(lhs))
-			return
-		}
-
-		if lhsType == nil {
-
-			if sym.Type == nil {
-				if isDefine {
-					sym.Type = rhsType
-					tc.ast.SetType(lhs, rhsType)
-				} else {
-					tc.errorf(node, "undefined name %s", tc.ast.NodeString(lhs))
-					return
-				}
-			}
-
-			lhsType = sym.Type
-		}
-	}
-
-	if lhsType != rhsType {
+	if lhsType != rhsType && tc.ast.Token(node).Kind() != token.Define {
 		tc.errorf(node, "cannot assign %s to %s", rhsType, lhsType)
 		return
 	}

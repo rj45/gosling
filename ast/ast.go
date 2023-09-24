@@ -39,9 +39,6 @@ type AST struct {
 
 	// typ is the type of each node indexed by NodeID
 	typ []types.Type
-
-	symtab   *types.SymTab
-	nextAddr int
 }
 
 // New creates a new AST from the source code
@@ -52,7 +49,6 @@ func New(file *File) *AST {
 			// the first node is always an illegal node
 			newNode(IllegalNode, 0, 0),
 		},
-		symtab: types.NewSymTab(),
 	}
 }
 
@@ -147,20 +143,6 @@ func (a *AST) PositionOf(tok token.Token) (line int, col int) {
 	return line + 1, col + 1
 }
 
-func (a *AST) SymbolOf(n NodeID) *types.Symbol {
-	switch a.node[n].kind() {
-	case Name:
-		name := a.NodeString(n)
-		sym := a.symtab.Lookup(name)
-		if sym.Offset == -1 {
-			sym.Offset = a.nextAddr
-			a.nextAddr++
-		}
-		return sym
-	}
-	return nil
-}
-
 // NodeBytes returns a cheap byte slice of the node text
 func (a *AST) NodeBytes(id NodeID) []byte {
 	t := a.node[id].token()
@@ -237,8 +219,4 @@ func (a *AST) nodeString(id NodeID, indent string) string {
 	}
 
 	return str + indent + ")"
-}
-
-func (a *AST) StackSize() int {
-	return a.nextAddr
 }

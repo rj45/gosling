@@ -8,7 +8,6 @@ import (
 // name = ident
 func (p *Parser) name() ast.NodeID {
 	node := p.node(ast.Name, token.Ident)
-	p.ast.SymbolOf(node)
 	return node
 }
 

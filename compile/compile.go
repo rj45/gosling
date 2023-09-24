@@ -14,12 +14,12 @@ func Compile(file *ast.File, asm codegen.Assembly) []error {
 		return errs
 	}
 
-	errs = semantics.NewTypeChecker(ast).Check(ast.Root())
+	symtab, errs := semantics.NewTypeChecker(ast).Check(ast.Root())
 	if errs != nil {
 		return errs
 	}
 
-	gen := codegen.New(ast, asm)
+	gen := codegen.New(ast, symtab, asm)
 	gen.Generate()
 
 	return nil

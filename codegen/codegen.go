@@ -42,15 +42,17 @@ type Assembly interface {
 }
 
 type CodeGen struct {
-	ast   *ast.AST
-	asm   Assembly
-	label int
+	ast    *ast.AST
+	symtab *ast.SymTab
+	asm    Assembly
+	label  int
 }
 
-func New(ast *ast.AST, asm Assembly) *CodeGen {
+func New(ast *ast.AST, symtab *ast.SymTab, asm Assembly) *CodeGen {
 	return &CodeGen{
-		ast: ast,
-		asm: asm,
+		ast:    ast,
+		symtab: symtab,
+		asm:    asm,
 	}
 }
 
@@ -61,6 +63,9 @@ func (g *CodeGen) Generate() {
 }
 
 func (g *CodeGen) genDeclList(node ast.NodeID) {
+	g.symtab.EnterScope(node)
+	defer g.symtab.LeaveScope()
+
 	decls := g.ast.Children(node)
 
 	// generate main func first
@@ -93,9 +98,12 @@ func (g *CodeGen) genDecl(node ast.NodeID) {
 }
 
 func (g *CodeGen) genFuncDecl(node ast.NodeID) {
+	g.symtab.EnterScope(node)
+	defer g.symtab.LeaveScope()
+
 	name := g.ast.Child(node, ast.FuncDeclName)
 
-	g.asm.Prologue(g.ast.NodeString(name), g.ast.StackSize())
+	g.asm.Prologue(g.ast.NodeString(name), g.symtab.StackSize())
 	body := g.ast.Child(node, ast.FuncDeclBody)
 
 	g.genStmtList(body)
@@ -104,6 +112,9 @@ func (g *CodeGen) genFuncDecl(node ast.NodeID) {
 }
 
 func (g *CodeGen) genStmtList(node ast.NodeID) {
+	g.symtab.EnterScope(node)
+	defer g.symtab.LeaveScope()
+
 	children := g.ast.Children(node)
 	for _, child := range children {
 		g.genStmt(child)
@@ -193,7 +204,7 @@ func (g *CodeGen) genForStmt(node ast.NodeID) {
 func (g *CodeGen) localOffset(node ast.NodeID) int {
 	switch g.ast.Kind(node) {
 	case ast.Name:
-		sym := g.ast.SymbolOf(node)
+		sym := g.symtab.Lookup(g.ast.NodeString(node))
 		return sym.Offset * g.asm.WordSize()
 	default:
 		panic("unknown addr kind for offset")
@@ -245,7 +256,7 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 	case ast.Literal:
 		g.asm.LoadInt(g.ast.NodeString(node))
 	case ast.Name:
-		sym := g.ast.SymbolOf(node)
+		sym := g.symtab.Lookup(g.ast.NodeString(node))
 		if sym.Const != nil {
 			g.genConst(sym.Const)
 			return
