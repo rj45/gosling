@@ -13,6 +13,7 @@ type Asm struct {
 
 	labels map[string]int
 	refs   map[string][]int
+	fn     string
 }
 
 func NewAsm() *Asm {
@@ -27,7 +28,9 @@ func (a *Asm) instr1(op Opcode, arg int) {
 	a.Program = append(a.Program, Instr(op)|Instr(arg)<<8)
 }
 
-func (a *Asm) Prologue(locals int) {
+func (a *Asm) Prologue(name string, locals int) {
+	a.fn = "_" + name
+	a.Label(a.fn, 0)
 	a.instr1(Prologue, locals)
 }
 
@@ -112,7 +115,7 @@ func (a *Asm) Ge() {
 }
 
 func (a *Asm) JumpToEpilogue() {
-	a.jump(Jump, "epilogue0")
+	a.jump(Jump, "epilogue"+a.fn+"0")
 }
 
 func (a *Asm) JumpIfFalse(label string, offset int) {
@@ -158,6 +161,6 @@ func (a *Asm) Label(label string, offset int) {
 }
 
 func (a *Asm) Epilogue() {
-	a.Label("epilogue", 0)
+	a.Label("epilogue"+a.fn, 0)
 	a.instr(Epilogue)
 }

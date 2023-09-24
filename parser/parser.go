@@ -21,7 +21,7 @@ func New(file *ast.File) *Parser {
 func (p *Parser) Parse() (*ast.AST, []error) {
 	p.next()
 
-	p.block()
+	p.declList()
 
 	return p.ast, p.errs
 }

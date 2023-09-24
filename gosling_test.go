@@ -268,7 +268,7 @@ func TestCodegenWithVirtualMachine(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			file := ast.NewFile("test.gos", []byte(tt.input))
+			file := ast.NewFile("test.gos", []byte("func main() int "+tt.input))
 			asm := vm.NewAsm()
 			errs := compile.Compile(file, asm)
 
@@ -292,7 +292,7 @@ func TestCodegenWithAssembler(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			file := ast.NewFile("test.gos", []byte(tt.input))
+			file := ast.NewFile("test.gos", []byte("func main() int "+tt.input))
 
 			tmp, err := os.CreateTemp("", "gosling_*.s")
 			if err != nil {

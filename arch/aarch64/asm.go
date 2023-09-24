@@ -8,6 +8,7 @@ import (
 type Assembly struct {
 	Out   io.Writer
 	depth int
+	fn    string
 }
 
 func align(n int, align int) int {
@@ -18,11 +19,12 @@ func (g *Assembly) printf(format string, args ...interface{}) {
 	fmt.Fprintf(g.Out, format+"\n", args...)
 }
 
-func (g *Assembly) Prologue(stacksize int) {
+func (g *Assembly) Prologue(fnname string, stacksize int) {
+	g.fn = "_" + fnname
 	g.printf(".text")
-	g.printf(".global _main")
+	g.printf(".global %s", g.fn)
 	g.printf(".align 2")
-	g.printf("_main:")
+	g.printf("%s:", g.fn)
 	g.printf("  stp x29, x30, [sp, #-16]!")
 	g.printf("  mov x29, sp")
 	g.printf("  sub sp, sp, #%d", align(stacksize*g.WordSize(), 16))
@@ -115,7 +117,7 @@ func (g *Assembly) Ge() {
 }
 
 func (g *Assembly) JumpToEpilogue() {
-	g.printf("  b .L.epilogue")
+	g.printf("  b .L.epilogue%s", g.fn)
 }
 
 func (g *Assembly) JumpIfFalse(label string, count int) {
@@ -132,7 +134,7 @@ func (g *Assembly) Label(label string, count int) {
 }
 
 func (g *Assembly) Epilogue() {
-	g.printf(".L.epilogue:")
+	g.printf(".L.epilogue%s:", g.fn)
 	g.printf("  mov sp, x29")
 	g.printf("  ldp x29, x30, [sp], #16")
 	g.printf("  mov x16, #1") // syscall number for exit()

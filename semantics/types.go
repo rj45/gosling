@@ -51,6 +51,10 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 	}
 
 	switch tc.ast.Kind(node) {
+	case ast.DeclList:
+		// nothing to do
+	case ast.FuncDecl:
+		tc.checkFuncDecl(node)
 	case ast.ExprList:
 		// todo: maybe have a tuple type?
 	case ast.BinaryExpr:
@@ -118,6 +122,40 @@ func (tc *TypeChecker) checkExprChild(parent, child ast.NodeID) {
 			}
 		}
 	}
+}
+
+func (tc *TypeChecker) checkFuncDecl(node ast.NodeID) {
+	name := tc.ast.Child(node, ast.FuncDeclName)
+	ret := tc.ast.Child(node, ast.FuncDeclRet)
+
+	sym := tc.ast.SymbolOf(name)
+
+	if sym.Type != nil {
+		tc.errorf(node, "cannot redefine function %s", tc.ast.NodeString(name))
+		return
+	}
+
+	if ret == ast.InvalidNode {
+		// todo: check for return statements
+		sym.Type = tc.uni.Func(nil)
+		tc.ast.SetType(name, sym.Type)
+		tc.ast.SetType(node, sym.Type)
+		return
+	}
+
+	retType := tc.ast.Type(ret)
+
+	if retType == nil {
+		tc.errorf(node, "function %s has invalid return type %s", tc.ast.NodeString(name), tc.ast.NodeString(ret))
+		return
+	}
+
+	sym.Type = tc.uni.Func(retType)
+	tc.ast.SetType(name, sym.Type)
+
+	tc.ast.SetType(node, sym.Type)
+
+	// todo: check return statement types
 }
 
 func (tc *TypeChecker) checkBinaryExpr(node ast.NodeID) {

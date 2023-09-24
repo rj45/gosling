@@ -9,19 +9,44 @@ import (
 	"github.com/rj45/gosling/semantics"
 )
 
-func ParseStmt(src string) (*ast.AST, ast.NodeID, []error) {
-	parser := parser.New(ast.NewFile("test.gos", []byte("{"+src+"}")))
+func parse(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
+	parser := parser.New(ast.NewFile("test.gos", []byte(src)))
 	a, errs := parser.Parse()
+	if len(errs) > 0 {
+		return nil, ast.InvalidNode, errs
+	}
+
+	root := a.Root()
+	if a.Kind(root) != ast.DeclList {
+		t.Errorf("Expected DeclList, but got %s", a.Kind(root))
+	}
+
+	errs = semantics.NewTypeChecker(a).Check(root)
 	if errs != nil {
 		return nil, ast.InvalidNode, errs
 	}
-	errs = semantics.NewTypeChecker(a).Check(a.Root())
-	if errs != nil {
+
+	return a, root, nil
+}
+
+func parseStmt(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
+	a, root, errs := parse(t, "func main() int {"+src+"}")
+	if len(errs) > 0 {
 		return nil, ast.InvalidNode, errs
 	}
-	node := a.Root()
-	node = a.Child(node, a.NumChildren(node)-1)
-	return a, node, nil
+
+	decl := a.Child(root, 0)
+	if a.Kind(decl) != ast.FuncDecl {
+		t.Errorf("Expected FuncDecl, but got %s", a.Kind(decl))
+	}
+
+	body := a.Child(decl, ast.FuncDeclBody)
+	if a.Kind(body) != ast.StmtList {
+		t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+	}
+
+	stmt := a.Child(body, a.NumChildren(body)-1)
+	return a, stmt, nil
 }
 
 func TestTypeChecking(t *testing.T) {
@@ -221,7 +246,85 @@ func TestTypeChecking(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, node, errs := ParseStmt(tt.src)
+			a, node, errs := parseStmt(t, tt.src)
+
+			if errs != nil {
+				for _, err := range errs {
+					if tt.err == "" {
+						t.Errorf("Expected no error, but got %s", errs)
+					} else if !strings.Contains(err.Error(), tt.err) {
+						t.Errorf("Expected error to contain %q, but got %q", tt.err, err)
+					}
+				}
+				return
+			}
+
+			if errs == nil && tt.err != "" {
+				t.Errorf("Expected error %q, but got none", tt.err)
+				return
+			}
+
+			actual := a.Type(node)
+
+			if actual == nil && tt.expected != "" {
+				t.Errorf("Expected type %q, but got none", tt.expected)
+			} else if actual.String() != tt.expected {
+				t.Errorf("Expected: %s\nBut got: %s", tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestTypeCheckingDecls(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      string
+		expected string
+		err      string
+	}{
+		{
+			name:     "function declaration",
+			src:      "func foo() int { return 42 }",
+			expected: "func() int",
+			err:      "",
+		},
+		{
+			name:     "function declaration",
+			src:      "func foo() {}",
+			expected: "func()",
+			err:      "",
+		},
+		{
+			name:     "function redeclaration",
+			src:      "func foo() {} func foo() {}",
+			expected: "",
+			err:      "cannot redefine function foo",
+		},
+		{
+			name:     "bad function return type",
+			src:      "func foo() bar {}",
+			expected: "",
+			err:      "function foo has invalid return type bar",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a, node, errs := parse(t, tt.src)
+
+			if errs != nil {
+				for _, err := range errs {
+					if tt.err == "" {
+						t.Errorf("Expected no error, but got %s", errs)
+					} else if !strings.Contains(err.Error(), tt.err) {
+						t.Errorf("Expected error to contain %q, but got %q", tt.err, err)
+					}
+				}
+				return
+			}
+
+			// first child of the root decl list
+			node = a.Child(node, 0)
 
 			if errs != nil {
 				for _, err := range errs {

@@ -9,7 +9,7 @@ import (
 type Assembly interface {
 	WordSize() int
 
-	Prologue(int)
+	Prologue(string, int)
 	Epilogue()
 
 	Push()
@@ -55,9 +55,51 @@ func New(ast *ast.AST, asm Assembly) *CodeGen {
 }
 
 func (g *CodeGen) Generate() {
-	g.asm.Prologue(g.ast.StackSize())
 
-	g.genStmtList(g.ast.Root())
+	g.genDeclList(g.ast.Root())
+
+}
+
+func (g *CodeGen) genDeclList(node ast.NodeID) {
+	decls := g.ast.Children(node)
+
+	// generate main func first
+	for _, decl := range decls {
+		if g.ast.Kind(decl) != ast.FuncDecl {
+			continue
+		}
+		if g.ast.NodeString(g.ast.Child(decl, ast.FuncDeclName)) != "main" {
+			continue
+		}
+		g.genDecl(decl)
+	}
+
+	// generate other funcs
+	for _, decl := range decls {
+		if g.ast.Kind(decl) == ast.FuncDecl && g.ast.NodeString(g.ast.Child(decl, ast.FuncDeclName)) == "main" {
+			continue
+		}
+		g.genDecl(decl)
+	}
+}
+
+func (g *CodeGen) genDecl(node ast.NodeID) {
+	switch g.ast.Kind(node) {
+	case ast.FuncDecl:
+		g.genFuncDecl(node)
+	default:
+		panic("unknown decl kind")
+	}
+}
+
+func (g *CodeGen) genFuncDecl(node ast.NodeID) {
+	name := g.ast.Child(node, ast.FuncDeclName)
+
+	g.asm.Prologue(g.ast.NodeString(name), g.ast.StackSize())
+	body := g.ast.Child(node, ast.FuncDeclBody)
+
+	g.genStmtList(body)
+
 	g.asm.Epilogue()
 }
 

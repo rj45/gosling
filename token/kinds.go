@@ -38,6 +38,7 @@ const (
 	If
 	Else
 	For
+	Func
 
 	NumTokens
 )
@@ -68,6 +69,7 @@ var kindStrs = [...]string{
 	If:        "If",
 	Else:      "Else",
 	For:       "For",
+	Func:      "Func",
 }
 
 func (k Kind) String() string {

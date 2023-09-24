@@ -5,6 +5,7 @@ package types
 // It also allows to compare types by their address.
 type Universe struct {
 	pointers map[Type]*Pointer
+	funcs    []Func
 }
 
 func NewUniverse() *Universe {
@@ -20,4 +21,15 @@ func (u *Universe) Pointer(elem Type) *Pointer {
 		u.pointers[elem] = p
 	}
 	return p
+}
+
+func (u *Universe) Func(ret Type) *Func {
+	for i, f := range u.funcs {
+		if f.ret == ret {
+			return &u.funcs[i]
+		}
+	}
+	f := Func{ret: ret}
+	u.funcs = append(u.funcs, f)
+	return &u.funcs[len(u.funcs)-1]
 }

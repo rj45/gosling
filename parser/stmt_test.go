@@ -22,18 +22,10 @@ func TestParseExprStmt(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
-		a, err := parser.Parse()
-		if err != nil {
-			t.Errorf("Expected no error, but got %s", err)
+		a, stmt, errs := parseStmt(t, tt.src)
+		if len(errs) > 0 {
+			t.Errorf("Expected no error, but got %s", errs)
 		}
-
-		root := a.Root()
-		if a.Kind(root) != ast.StmtList {
-			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
-		}
-
-		stmt := a.Child(root, 0)
 
 		if trim(a.StringOf(stmt)) != trim(tt.expected) {
 			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
@@ -54,18 +46,10 @@ func TestParseReturnStmt(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
-		a, err := parser.Parse()
-		if err != nil {
-			t.Errorf("Expected no error, but got %s", err)
+		a, stmt, errs := parseStmt(t, tt.src)
+		if len(errs) > 0 {
+			t.Errorf("Expected no error, but got %s", errs)
 		}
-
-		root := a.Root()
-		if a.Kind(root) != ast.StmtList {
-			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
-		}
-
-		stmt := a.Child(root, 0)
 
 		if trim(a.StringOf(stmt)) != trim(tt.expected) {
 			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
@@ -127,18 +111,10 @@ func TestParseForStmt(t *testing.T) {
 		)`},
 	}
 	for _, tt := range tests {
-		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
-		a, err := parser.Parse()
-		if err != nil {
-			t.Errorf("Expected no error, but got %s", err)
+		a, stmt, errs := parseStmt(t, tt.src)
+		if len(errs) > 0 {
+			t.Errorf("Expected no error, but got %s", errs)
 		}
-
-		root := a.Root()
-		if a.Kind(root) != ast.StmtList {
-			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
-		}
-
-		stmt := a.Child(root, 0)
 
 		if trim(a.StringOf(stmt)) != trim(tt.expected) {
 			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
@@ -178,21 +154,48 @@ func TestParseAssignStmt(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New(ast.NewFile("test.gos", []byte("{"+tt.src+"}")))
-		a, err := parser.Parse()
-		if err != nil {
-			t.Errorf("Expected no error, but got %s", err)
+		a, stmt, errs := parseStmt(t, tt.src)
+		if len(errs) > 0 {
+			t.Errorf("Expected no error, but got %s", errs)
 		}
-
-		root := a.Root()
-		if a.Kind(root) != ast.StmtList {
-			t.Errorf("Expected StmtList, but got %s", a.Kind(root))
-		}
-
-		stmt := a.Child(root, 0)
 
 		if trim(a.StringOf(stmt)) != trim(tt.expected) {
 			t.Errorf("Expected: %s\nBut got: %s", tt.expected, a.StringOf(stmt))
 		}
 	}
+}
+
+func parse(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
+	parser := parser.New(ast.NewFile("test.gos", []byte(src)))
+	a, errs := parser.Parse()
+	if len(errs) > 0 {
+		return nil, ast.InvalidNode, errs
+	}
+
+	root := a.Root()
+	if a.Kind(root) != ast.DeclList {
+		t.Errorf("Expected DeclList, but got %s", a.Kind(root))
+	}
+
+	return a, root, nil
+}
+
+func parseStmt(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
+	a, root, errs := parse(t, "func main() int {"+src+"}")
+	if len(errs) > 0 {
+		return nil, ast.InvalidNode, errs
+	}
+
+	decl := a.Child(root, 0)
+	if a.Kind(decl) != ast.FuncDecl {
+		t.Errorf("Expected FuncDecl, but got %s", a.Kind(decl))
+	}
+
+	body := a.Child(decl, ast.FuncDeclBody)
+	if a.Kind(body) != ast.StmtList {
+		t.Errorf("Expected StmtList, but got %s", a.Kind(root))
+	}
+
+	stmt := a.Child(body, 0)
+	return a, stmt, nil
 }

@@ -5,6 +5,13 @@ import (
 	"github.com/rj45/gosling/token"
 )
 
+// name = ident
+func (p *Parser) name() ast.NodeID {
+	node := p.node(ast.Name, token.Ident)
+	p.ast.SymbolOf(node)
+	return node
+}
+
 // expr = equality
 func (p *Parser) expr() ast.NodeID {
 	return p.equality()
@@ -99,8 +106,7 @@ func (p *Parser) primary() ast.NodeID {
 	case token.Int:
 		return p.node(ast.Literal, token.Int)
 	case token.Ident:
-		node := p.node(ast.Name, token.Ident)
-		p.ast.SymbolOf(node) // generate address
+		node := p.name()
 		if p.tok.Kind() == token.LParen {
 			return p.ast.AddNode(ast.CallExpr, p.tok, node, p.argList())
 		}

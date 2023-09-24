@@ -1,6 +1,14 @@
 package ast
 
 const (
+	// DeclList has a list of Decl children
+
+	// FuncDecl has Name child, FieldList of parameters, a Name of the return type, and a StmtList of the body
+	FuncDeclName   = 0
+	FuncDeclParams = 1
+	FuncDeclRet    = 2
+	FuncDeclBody   = 3
+
 	// ExprList has a list of Expr children
 
 	// BinaryExpr has LHS and RHS children
