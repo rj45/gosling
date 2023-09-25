@@ -14,6 +14,10 @@ func (p *Parser) declList() ast.NodeID {
 		before := p.tok
 		decls = append(decls, p.decl())
 
+		if p.tok.Kind() == token.Semicolon {
+			p.next()
+		}
+
 		if before == p.tok {
 			// do not loop forever if we aren't making progress
 			p.error("expected declaration")

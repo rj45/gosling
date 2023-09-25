@@ -116,6 +116,10 @@ func (g *Assembly) Ge() {
 	g.printf("  cset x0, ge")
 }
 
+func (g *Assembly) Call(fnname string) {
+	g.printf("  bl _%s", fnname)
+}
+
 func (g *Assembly) JumpToEpilogue() {
 	g.printf("  b .L.epilogue%s", g.fn)
 }
@@ -137,8 +141,10 @@ func (g *Assembly) Epilogue() {
 	g.printf(".L.epilogue%s:", g.fn)
 	g.printf("  mov sp, x29")
 	g.printf("  ldp x29, x30, [sp], #16")
-	g.printf("  mov x16, #1") // syscall number for exit()
-	g.printf("  svc #0")      // syscall
+	if g.fn == "_main" {
+		g.printf("  mov x16, #1") // syscall number for exit()
+		g.printf("  svc #0")      // syscall
+	}
 	g.printf("  ret")
 
 	if g.depth != 0 {

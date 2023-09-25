@@ -312,6 +312,18 @@ func TestTypeCheckingDecls(t *testing.T) {
 			expected: "",
 			err:      "undefined name bar",
 		},
+		{
+			name:     "cannot return value from void function",
+			src:      "func foo() {return 1}",
+			expected: "",
+			err:      "cannot return value from void function",
+		},
+		{
+			name:     "return wrong type",
+			src:      "func foo() int {} func bar() bool { return foo() }",
+			expected: "",
+			err:      "cannot return int from function returning bool",
+		},
 	}
 
 	for _, tt := range tests {

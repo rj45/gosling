@@ -35,6 +35,7 @@ type Assembly interface {
 	Gt()
 	Ge()
 
+	Call(string)
 	JumpToEpilogue()
 	JumpIfFalse(string, int)
 	Jump(string, int)
@@ -262,6 +263,8 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 			return
 		}
 		g.asm.LoadLocal(g.localOffset(node))
+	case ast.CallExpr:
+		g.genCallExpr(node)
 	default:
 		panic("unknown expr kind")
 	}
@@ -293,4 +296,10 @@ func (g *CodeGen) genConst(c types.Const) {
 		return
 	}
 	panic("todo: implement const type " + c.String())
+}
+
+func (g *CodeGen) genCallExpr(node ast.NodeID) {
+	name := g.ast.Child(node, ast.CallExprName)
+
+	g.asm.Call(g.ast.NodeString(name))
 }

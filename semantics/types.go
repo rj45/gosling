@@ -285,15 +285,15 @@ func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
 		return
 	}
 
-	typ := tc.ast.Type(name)
-	if typ == nil {
-		return
-	}
+	typ := sym.Type
 
-	if _, ok := typ.(*types.Func); !ok {
+	fnTyp, ok := typ.(*types.Func)
+	if !ok {
 		tc.errorf(node, "cannot call non-function %s of type %s", tc.ast.NodeString(name), typ)
 		return
 	}
+
+	tc.ast.SetType(node, fnTyp.ReturnType())
 }
 
 func (tc *TypeChecker) checkLiteral(node ast.NodeID) {
@@ -369,6 +369,37 @@ func (tc *TypeChecker) checkForStmt(node ast.NodeID) {
 func (tc *TypeChecker) checkReturnStmt(node ast.NodeID) {
 	children := tc.ast.Children(node)
 
+	fnScope := tc.symtab.LocalScope()
+	if fnScope == ast.InvalidScope {
+		panic("return statement outside of function")
+	}
+	fnNode := tc.symtab.ScopeNode(fnScope)
+	if fnNode == ast.InvalidNode {
+		panic("function scope without function node")
+	}
+
+	fnName := tc.ast.Child(fnNode, ast.FuncDeclName)
+	fnSym := tc.symtab.Lookup(tc.ast.NodeString(fnName))
+
+	if fnSym == nil {
+		panic("function scope without function symbol")
+	}
+
+	fnTypeT := fnSym.Type
+	if fnTypeT == nil {
+		panic("function symbol without type")
+	}
+	fnType := fnTypeT.(*types.Func)
+	retType := fnType.ReturnType()
+
+	if retType == nil {
+		if len(children) != 0 {
+			tc.errorf(node, "cannot return value from void function")
+		}
+		tc.ast.SetType(node, types.Void)
+		return
+	}
+
 	if len(children) != 1 {
 		tc.errorf(node, "invalid return statement")
 		return
@@ -378,8 +409,14 @@ func (tc *TypeChecker) checkReturnStmt(node ast.NodeID) {
 	if typ == nil {
 		return
 	}
-	if typ != types.Int && typ != types.UntypedInt {
-		tc.errorf(node, "cannot return %s", typ)
+
+	// todo: centralize this coercion logic
+	if retType == types.Int && typ == types.UntypedInt {
+		typ = types.Int
+	}
+
+	if typ != retType {
+		tc.errorf(node, "cannot return %s from function returning %s", typ, retType)
 	}
 	tc.ast.SetType(node, typ)
 }

@@ -114,6 +114,10 @@ func (a *Asm) Ge() {
 	a.instr(Ge)
 }
 
+func (a *Asm) Call(name string) {
+	a.jump(Call, "_"+name+"0")
+}
+
 func (a *Asm) JumpToEpilogue() {
 	a.jump(Jump, "epilogue"+a.fn+"0")
 }
@@ -162,5 +166,9 @@ func (a *Asm) Label(label string, offset int) {
 
 func (a *Asm) Epilogue() {
 	a.Label("epilogue"+a.fn, 0)
-	a.instr(Epilogue)
+	if a.fn == "_main" {
+		a.instr(Exit)
+		return
+	}
+	a.instr(Return)
 }

@@ -1,8 +1,10 @@
 package main_test
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/rj45/gosling/arch/aarch64"
@@ -261,6 +263,30 @@ var tests = []struct {
 		input:  `{ a := 1; a = 29; return a }`,
 		output: 29,
 	},
+	{
+		name: "function call",
+		input: `
+			func foo() int {
+				return 42
+			}
+			func main() int {
+				return foo()
+			}
+		`,
+		output: 42,
+	},
+	{
+		name: "function call out of order",
+		input: `
+			func main() int {
+				return foo() * 2
+			}
+			func foo() int {
+				return 9
+			}
+		`,
+		output: 18,
+	},
 }
 
 func TestCodegenWithVirtualMachine(t *testing.T) {
@@ -268,17 +294,23 @@ func TestCodegenWithVirtualMachine(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			file := ast.NewFile("test.gos", []byte("func main() int "+tt.input))
+			fmt.Println(tt.name)
+			input := "func main() int " + tt.input
+			if strings.Contains(tt.input, "main()") {
+				input = tt.input
+			}
+			file := ast.NewFile("test.gos", []byte(input))
 			asm := vm.NewAsm()
 			errs := compile.Compile(file, asm)
 
 			if len(errs) > 0 {
 				for _, err := range errs {
-					t.Errorf("Expected no error, but got %s", err)
+					t.Errorf("Expected no error, but got\n%s", err)
 				}
 			}
 
 			vm := vm.NewCPU(asm.Program)
+			// vm.Trace = true
 			actual := vm.Run()
 			if actual != tt.output {
 				t.Errorf("Expected: %d; but got: %d", tt.output, actual)
@@ -292,7 +324,11 @@ func TestCodegenWithAssembler(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			file := ast.NewFile("test.gos", []byte("func main() int "+tt.input))
+			input := "func main() int " + tt.input
+			if strings.Contains(tt.input, "main()") {
+				input = tt.input
+			}
+			file := ast.NewFile("test.gos", []byte(input))
 
 			tmp, err := os.CreateTemp("", "gosling_*.s")
 			if err != nil {

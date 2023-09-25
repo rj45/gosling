@@ -34,6 +34,7 @@ const (
 
 type scope struct {
 	parent     ScopeID
+	node       NodeID
 	level      int
 	nameSym    map[string]SymbolID
 	nextOffset int
@@ -61,6 +62,7 @@ func NewSymTab() *SymTab {
 	symtab.NewSymbol("false", ConstSymbol, types.Bool).Const = types.BoolConst(false)
 
 	symtab.NewSymbol("int", TypeSymbol, types.Int)
+	symtab.NewSymbol("bool", TypeSymbol, types.Bool)
 
 	return symtab
 }
@@ -83,7 +85,9 @@ func (t *SymTab) EnterScope(node NodeID) {
 		t.scope = scope
 		return
 	}
-	t.nodeScope[node] = t.NewScope()
+	scope := t.NewScope()
+	t.nodeScope[node] = scope
+	t.scopes[scope].node = node
 }
 
 func (t *SymTab) LeaveScope() {
@@ -106,13 +110,27 @@ func (t *SymTab) ParentScope(id ScopeID) ScopeID {
 	return t.scopes[id].parent
 }
 
-func (t *SymTab) StackSize() int {
-	for scope := &t.scopes[t.scope]; scope.parent > 0; scope = &t.scopes[scope.parent] {
-		if scope.level == LocalScope {
-			return scope.nextOffset
+func (t *SymTab) ScopeNode(id ScopeID) NodeID {
+	return t.scopes[id].node
+}
+
+func (t *SymTab) LocalScope() ScopeID {
+	for scope := t.scope; t.scopes[scope].level > InvalidScope; scope = t.scopes[scope].parent {
+		if t.scopes[scope].level == LocalScope {
+			return ScopeID(scope)
 		}
 	}
-	return 0
+	return InvalidScope
+}
+
+func (t *SymTab) StackSize() int {
+	localScopeID := t.LocalScope()
+	if localScopeID == InvalidScope {
+		return 0
+	}
+
+	localScope := &t.scopes[localScopeID]
+	return localScope.nextOffset
 }
 
 func (t *SymTab) Lookup(name string) *Symbol {
@@ -129,12 +147,11 @@ func (t *SymTab) NewSymbol(name string, kind SymbolKind, typ types.Type) *Symbol
 	id := SymbolID(len(t.sym))
 
 	offset := 0
-	for scope := &t.scopes[t.scope]; scope.parent > 0; scope = &t.scopes[scope.parent] {
-		if scope.level == LocalScope {
-			offset = scope.nextOffset
-			scope.nextOffset++
-			break
-		}
+	localScopeID := t.LocalScope()
+	if localScopeID != InvalidScope {
+		localScope := &t.scopes[localScopeID]
+		offset = localScope.nextOffset
+		localScope.nextOffset++
 	}
 
 	t.sym = append(t.sym, Symbol{ID: id, Scope: t.scope, Kind: kind, Name: name, Offset: offset})

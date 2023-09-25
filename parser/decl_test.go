@@ -31,6 +31,12 @@ func TestParseFuncDecl(t *testing.T) {
 				),
 			),
 		)`},
+		{"func foo() {}\n\nfunc main() int { return 1 }", `FuncDecl(
+        	Name("foo"),
+        	nil,
+        	nil,
+        	StmtList(),
+        )`},
 	}
 
 	for _, tt := range tests {

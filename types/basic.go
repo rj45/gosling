@@ -4,6 +4,7 @@ type Basic uint8
 
 const (
 	Invalid Basic = iota
+	Void
 	Int
 	Bool
 	UntypedInt
@@ -23,6 +24,8 @@ type basicInfo struct {
 }
 
 var basicInfos = [...]basicInfo{
+	Invalid:    {"invalid", 0},
+	Void:       {"void", 0},
 	Int:        {"int", isInteger},
 	Bool:       {"bool", isBoolean},
 	UntypedInt: {"untyped int", isUntyped | isInteger},
