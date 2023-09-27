@@ -30,7 +30,7 @@ func parse(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
 }
 
 func parseStmt(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
-	a, root, errs := parse(t, "func main() int {"+src+"}")
+	a, root, errs := parse(t, "func foo() {"+src+"}")
 	if len(errs) > 0 {
 		return nil, ast.InvalidNode, errs
 	}
@@ -117,12 +117,6 @@ func TestTypeChecking(t *testing.T) {
 			err:      "for condition must be bool",
 		},
 		{
-			name:     "return needs int",
-			src:      "return true",
-			expected: "",
-			err:      "cannot return bool",
-		},
-		{
 			name:     "assign untyped int converted to int",
 			src:      "a := 1",
 			expected: "int",
@@ -175,12 +169,6 @@ func TestTypeChecking(t *testing.T) {
 			src:      "&1",
 			expected: "",
 			err:      "cannot take address of non-name",
-		},
-		{
-			name:     "invalid return",
-			src:      "return",
-			expected: "",
-			err:      "invalid return statement",
 		},
 		{
 			name:     "if expression",
@@ -238,9 +226,9 @@ func TestTypeChecking(t *testing.T) {
 		},
 		{
 			name:     "function call to undefined function",
-			src:      "a := foo(); a",
+			src:      "a := bar(); a",
 			expected: "",
-			err:      "cannot call undefined function foo",
+			err:      "cannot call undefined function bar",
 		},
 		{
 			name:     "function call to non function",
@@ -289,6 +277,18 @@ func TestTypeCheckingDecls(t *testing.T) {
 		err      string
 	}{
 		{
+			name:     "return needs int",
+			src:      "func main() int { return true }",
+			expected: "",
+			err:      "cannot return bool",
+		},
+		{
+			name:     "invalid return",
+			src:      "func main() int { return }",
+			expected: "",
+			err:      "invalid return statement",
+		},
+		{
 			name:     "function declaration",
 			src:      "func foo() int { return 42 }",
 			expected: "func() int",
@@ -320,7 +320,7 @@ func TestTypeCheckingDecls(t *testing.T) {
 		},
 		{
 			name:     "return wrong type",
-			src:      "func foo() int {} func bar() bool { return foo() }",
+			src:      "func foo() int {return 1} func bar() bool { return foo() }",
 			expected: "",
 			err:      "cannot return int from function returning bool",
 		},
@@ -357,6 +357,42 @@ func TestTypeCheckingDecls(t *testing.T) {
 		{
 			name:     "function post declaration",
 			src:      "func main() int { return foo(1) } func foo(a int) int { return a }",
+			expected: "func() int",
+			err:      "",
+		},
+		{
+			name:     "function missing return in function body",
+			src:      "func main() int { }",
+			expected: "",
+			err:      "missing return statement in function main",
+		},
+		{
+			name:     "function return must be last statement in block",
+			src:      "func main() int { {return 0; 1+1} return 1 } ",
+			expected: "",
+			err:      "return must be last statement in block",
+		},
+		{
+			name:     "function return can be in nested block",
+			src:      "func main() int { {return 0} } ",
+			expected: "func() int",
+			err:      "",
+		},
+		{
+			name:     "function return can be in if / else",
+			src:      "func main() int { if(true) { return 0 } else { return 1 } }",
+			expected: "func() int",
+			err:      "",
+		},
+		{
+			name:     "function missing return if only one branch has return",
+			src:      "func main() int { if(true) { 1 } else { return 1 } }",
+			expected: "",
+			err:      "missing return statement in function main",
+		},
+		{
+			name:     "function can return from for loop",
+			src:      "func main() int { for { return 1 } }",
 			expected: "func() int",
 			err:      "",
 		},

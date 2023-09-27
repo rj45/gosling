@@ -179,12 +179,12 @@ var tests = []struct {
 	},
 	{
 		name:   "return statement with multiple expressions",
-		input:  `{return 1; 2; 3}`,
+		input:  `{{return 1;} 2; 3; return 0}`,
 		output: 1,
 	},
 	{
 		name:   "return statement with multiple expressions 2",
-		input:  `{1; return 2; 3}`,
+		input:  `{1; {return 2;} 3; return 0}`,
 		output: 2,
 	},
 	{

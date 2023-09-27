@@ -110,7 +110,7 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 	case ast.ExprStmt:
 		tc.ast.SetType(node, tc.ast.Type(tc.ast.Child(node, ast.ExprStmtExpr)))
 	case ast.StmtList:
-		tc.ast.SetType(node, tc.ast.Type(tc.ast.Child(node, tc.ast.NumChildren(node)-1)))
+		tc.checkBlock(node)
 	case ast.Field:
 		tc.ast.SetType(node, tc.ast.Type(tc.ast.Child(node, ast.FieldTyp)))
 	case ast.EmptyStmt, ast.FieldList:
@@ -234,7 +234,33 @@ func (tc *TypeChecker) checkFuncDecl(node ast.NodeID) {
 
 	tc.ast.SetType(node, sym.Type)
 
-	// todo: check return statement types
+	if sym.Type != nil && sym.Type.(*types.Func).ReturnType() != nil {
+		body := tc.ast.Child(node, ast.FuncDeclBody)
+		if !tc.returns(body) {
+			tc.errorf(node, "missing return statement in function %s", tc.ast.NodeString(name))
+		}
+	}
+}
+
+func (tc *TypeChecker) returns(node ast.NodeID) bool {
+	switch tc.ast.Kind(node) {
+	case ast.ReturnStmt:
+		return true
+	case ast.StmtList:
+		num := tc.ast.NumChildren(node)
+		if num == 0 {
+			return false
+		}
+		return tc.returns(tc.ast.Child(node, num-1))
+	case ast.IfExpr:
+		then := tc.ast.Child(node, ast.IfExprThen)
+		els := tc.ast.Child(node, ast.IfExprElse)
+		return tc.returns(then) && tc.returns(els)
+	case ast.ForStmt:
+		body := tc.ast.Child(node, ast.ForStmtBody)
+		return tc.returns(body)
+	}
+	return false
 }
 
 func (tc *TypeChecker) checkBinaryExpr(node ast.NodeID) {
@@ -359,6 +385,24 @@ func (tc *TypeChecker) checkName(node ast.NodeID) {
 		return
 	}
 	tc.ast.SetType(node, sym.Type)
+}
+
+func (tc *TypeChecker) checkBlock(node ast.NodeID) {
+	children := tc.ast.Children(node)
+	if len(children) == 0 {
+		tc.ast.SetType(node, types.Void)
+		return
+	}
+
+	for i, child := range children {
+		if tc.ast.Kind(child) == ast.ReturnStmt {
+			if i != len(children)-1 {
+				tc.errorf(node, "return must be last statement in block")
+			}
+		}
+	}
+
+	tc.ast.SetType(node, tc.ast.Type(children[len(children)-1]))
 }
 
 func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
