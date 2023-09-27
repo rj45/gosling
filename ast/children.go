@@ -9,6 +9,12 @@ const (
 	FuncDeclRet    = 2
 	FuncDeclBody   = 3
 
+	// FieldList has a list of Field children
+
+	// Field has Name child and a Name of the type
+	FieldName = 0
+	FieldTyp  = 1
+
 	// ExprList has a list of Expr children
 
 	// BinaryExpr has LHS and RHS children

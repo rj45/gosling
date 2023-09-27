@@ -71,9 +71,7 @@ func (p *Parser) mul() ast.NodeID {
 	}
 }
 
-// unary = ("+" | "-" | "*" | "&") unary
-//
-//	| primary
+// unary = ("+" | "-" | "*" | "&") unary | primary
 func (p *Parser) unary() ast.NodeID {
 	switch p.tok.Kind() {
 	case token.Add:
@@ -90,7 +88,7 @@ func (p *Parser) unary() ast.NodeID {
 	}
 }
 
-// primary = "(" expr ")" | number
+// primary = "(" expr ")" | block | ifExpr | number | name ( "(" argList ")" )?
 func (p *Parser) primary() ast.NodeID {
 	switch p.tok.Kind() {
 	case token.LParen:

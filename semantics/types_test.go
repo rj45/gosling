@@ -324,6 +324,42 @@ func TestTypeCheckingDecls(t *testing.T) {
 			expected: "",
 			err:      "cannot return int from function returning bool",
 		},
+		{
+			name:     "function call to undefined function",
+			src:      "func foo() { bar() }",
+			expected: "",
+			err:      "cannot call undefined function bar",
+		},
+		{
+			name:     "function call with wrong type argument",
+			src:      "func foo(a int) {} func bar() { foo(true) }",
+			expected: "",
+			err:      "wrong type for argument: expected int, got bool",
+		},
+		{
+			name:     "function call with wrong number of arguments",
+			src:      "func foo(a int) {} func bar() { foo(1, 2) }",
+			expected: "",
+			err:      "wrong number of arguments to foo: expected 1, got 2",
+		},
+		{
+			name:     "return wrong type via parameter",
+			src:      "func foo(a bool) int { return a }",
+			expected: "",
+			err:      "cannot return bool from function returning int",
+		},
+		{
+			name:     "function decl",
+			src:      "func foo(a bool) int { return 0 }",
+			expected: "func(bool) int",
+			err:      "",
+		},
+		{
+			name:     "function post declaration",
+			src:      "func main() int { return foo(1) } func foo(a int) int { return a }",
+			expected: "func() int",
+			err:      "",
+		},
 	}
 
 	for _, tt := range tests {

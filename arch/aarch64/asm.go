@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+var argRegs = []string{"x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7"}
+
 type Assembly struct {
 	Out   io.Writer
 	depth int
@@ -40,14 +42,20 @@ func (g *Assembly) Push() {
 	g.printf("  str x0, [sp, #-16]!")
 }
 
-func (g *Assembly) Pop() {
+func (g *Assembly) Pop(reg int) {
 	g.depth--
 	// note: stack is 16-byte aligned, so this is wasteful, we will fix that later
-	g.printf("  ldr x1, [sp], #16")
+	g.printf("  ldr %s, [sp], #16", argRegs[reg])
 }
 
 func (g *Assembly) LoadLocal(offset int) {
-	g.printf("  ldr x0, [x29, #%d]\n", -offset)
+	g.printf("  ldr x0, [x29, #%d]", -(offset + 8))
+}
+
+func (g *Assembly) StoreLocal(reg int) {
+	// this is kind of a hack... the vm can only take one argument
+	// this assumes that the arg reg will be stored in the same numbered local
+	g.printf("  str %s, [x29, #%d]", argRegs[reg], -((reg + 1) * 8))
 }
 
 func (g *Assembly) Load() {
@@ -63,7 +71,7 @@ func (g *Assembly) LoadInt(lit string) {
 }
 
 func (g *Assembly) LocalAddr(offset int) {
-	g.printf("  add x0, x29, #%d\n", -offset)
+	g.printf("  add x0, x29, #%d\n", -(offset + 8))
 }
 
 func (g *Assembly) Add() {

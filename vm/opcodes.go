@@ -18,6 +18,7 @@ const (
 	Push
 	Pop
 	LoadLocal
+	StoreLocal
 	LoadInt
 	LocalAddr
 	Add
@@ -46,6 +47,7 @@ var opcodeNames = [...]string{
 	Push:        "push",
 	Pop:         "pop",
 	LoadLocal:   "loadlocal",
+	StoreLocal:  "storelocal",
 	LoadInt:     "loadint",
 	LocalAddr:   "localaddr",
 	Add:         "add",
@@ -79,8 +81,9 @@ var opcodeHasArg = [...]bool{
 	Load:        false,
 	Store:       false,
 	Push:        false,
-	Pop:         false,
+	Pop:         true,
 	LoadLocal:   true,
+	StoreLocal:  true,
 	LoadInt:     true,
 	LocalAddr:   true,
 	Add:         false,

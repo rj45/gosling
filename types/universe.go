@@ -23,13 +23,22 @@ func (u *Universe) Pointer(elem Type) *Pointer {
 	return p
 }
 
-func (u *Universe) Func(ret Type) *Func {
+func (u *Universe) Func(params []Type, ret Type) *Func {
+outer:
 	for i, f := range u.funcs {
+		if len(f.params) != len(params) {
+			continue
+		}
+		for j, p := range f.params {
+			if p != params[j] {
+				continue outer
+			}
+		}
 		if f.ret == ret {
 			return &u.funcs[i]
 		}
 	}
-	f := Func{ret: ret}
+	f := Func{params: params, ret: ret}
 	u.funcs = append(u.funcs, f)
 	return &u.funcs[len(u.funcs)-1]
 }

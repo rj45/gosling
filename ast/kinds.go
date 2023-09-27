@@ -12,6 +12,9 @@ const (
 	DeclList
 	FuncDecl
 
+	FieldList
+	Field
+
 	ExprList
 	BinaryExpr
 	UnaryExpr
@@ -34,6 +37,8 @@ var kindNames = []string{
 	Name:        "Name",
 	DeclList:    "DeclList",
 	FuncDecl:    "FuncDecl",
+	FieldList:   "FieldList",
+	Field:       "Field",
 	ExprList:    "ExprList",
 	BinaryExpr:  "BinaryExpr",
 	UnaryExpr:   "UnaryExpr",

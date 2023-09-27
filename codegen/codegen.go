@@ -13,8 +13,9 @@ type Assembly interface {
 	Epilogue()
 
 	Push()
-	Pop()
+	Pop(int)
 	LoadLocal(int)
+	StoreLocal(int)
 	Load()
 	Store()
 
@@ -58,9 +59,7 @@ func New(ast *ast.AST, symtab *ast.SymTab, asm Assembly) *CodeGen {
 }
 
 func (g *CodeGen) Generate() {
-
 	g.genDeclList(g.ast.Root())
-
 }
 
 func (g *CodeGen) genDeclList(node ast.NodeID) {
@@ -105,6 +104,21 @@ func (g *CodeGen) genFuncDecl(node ast.NodeID) {
 	name := g.ast.Child(node, ast.FuncDeclName)
 
 	g.asm.Prologue(g.ast.NodeString(name), g.symtab.StackSize())
+
+	paramList := g.ast.Child(node, ast.FuncDeclParams)
+	for i, param := range g.ast.Children(paramList) {
+		name := g.ast.Child(param, ast.FieldName)
+		sym := g.symtab.Lookup(g.ast.NodeString(name))
+		if i != sym.Offset {
+			panic("param offset mismatch")
+		}
+		g.asm.StoreLocal(i)
+	}
+
+	if g.symtab.StackSize() < g.ast.NumChildren(paramList) {
+		panic("local size mismatch")
+	}
+
 	body := g.ast.Child(node, ast.FuncDeclBody)
 
 	g.genStmtList(body)
@@ -147,7 +161,7 @@ func (g *CodeGen) genAssignStmt(node ast.NodeID) {
 	g.genAddr(g.ast.Child(node, ast.AssignStmtLHS))
 	g.asm.Push()
 	g.genExpr(g.ast.Child(node, ast.AssignStmtRHS))
-	g.asm.Pop()
+	g.asm.Pop(1)
 	g.asm.Store()
 }
 
@@ -218,7 +232,7 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 		g.genExpr(g.ast.Child(node, ast.BinaryExprLHS))
 		g.asm.Push()
 		g.genExpr(g.ast.Child(node, ast.BinaryExprRHS))
-		g.asm.Pop()
+		g.asm.Pop(1)
 
 		switch g.ast.Token(node).Kind() {
 		case token.Add:
@@ -300,6 +314,15 @@ func (g *CodeGen) genConst(c types.Const) {
 
 func (g *CodeGen) genCallExpr(node ast.NodeID) {
 	name := g.ast.Child(node, ast.CallExprName)
+	argList := g.ast.Child(node, ast.CallExprArgs)
+	for _, arg := range g.ast.Children(argList) {
+		g.genExpr(arg)
+		g.asm.Push()
+	}
+
+	for i := len(g.ast.Children(argList)) - 1; i >= 0; i-- {
+		g.asm.Pop(i)
+	}
 
 	g.asm.Call(g.ast.NodeString(name))
 }

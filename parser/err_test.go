@@ -66,6 +66,11 @@ func TestDeclParseError(t *testing.T) {
 		expected string
 	}{
 		{"{", `expected declaration`},
+		{"func foo(a) {}", `expected type`},
+		{"func(a int) {}", `expected name`},
+		{"func foo()\n{}", `expected '{'`}, // bracket must be on same line (like in Go)
+		{"func foo() {", `expected '}'`},
+		{"func foo {}", `expected '('`},
 	}
 
 	for _, tt := range tests {

@@ -9,13 +9,13 @@ func TestParseFuncDecl(t *testing.T) {
 	}{
 		{"func main() int {}", `FuncDecl(
 			Name("main"),
-			nil,
+			FieldList(),
 			Name("int"),
 			StmtList(),
 		)`},
 		{"func main() int { return 42 }", `FuncDecl(
 			Name("main"),
-			nil,
+			FieldList(),
 			Name("int"),
 			StmtList(
 				ReturnStmt(Literal("42")),
@@ -23,7 +23,7 @@ func TestParseFuncDecl(t *testing.T) {
 		)`},
 		{"func main() int { return 1+2 }", `FuncDecl(
 			Name("main"),
-			nil,
+			FieldList(),
 			Name("int"),
 			StmtList(
 				ReturnStmt(
@@ -33,10 +33,27 @@ func TestParseFuncDecl(t *testing.T) {
 		)`},
 		{"func foo() {}\n\nfunc main() int { return 1 }", `FuncDecl(
         	Name("foo"),
-        	nil,
+        	FieldList(),
         	nil,
         	StmtList(),
         )`},
+		{"func foo(a int) {}", `FuncDecl(
+			Name("foo"),
+			FieldList(
+				Field(Name("a"), Name("int")),
+			),
+			nil,
+			StmtList(),
+		)`},
+		{"func foo(a int, b bool) int {}", `FuncDecl(
+			Name("foo"),
+			FieldList(
+				Field(Name("a"), Name("int")),
+				Field(Name("b"), Name("bool")),
+			),
+			Name("int"),
+			StmtList(),
+		)`},
 	}
 
 	for _, tt := range tests {

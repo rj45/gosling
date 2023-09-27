@@ -78,5 +78,8 @@ func (p *Parser) errorIllegalToken() {
 var tokenErrStrs = map[token.Kind]string{
 	token.EOF:       "end of file",
 	token.Semicolon: "newline or ';' or '}'",
+	token.LBrace:    "'{'",
 	token.RBrace:    "'}'",
+	token.LParen:    "'('",
+	token.Ident:     "name",
 }

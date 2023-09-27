@@ -8,8 +8,7 @@ type Instr uint64
 // which can be used to test code generation without
 // having to run an external assembler.
 type CPU struct {
-	a          int
-	b          int
+	regs       [8]int
 	stack      []int
 	locals     []int
 	localStack [][]int
@@ -46,72 +45,76 @@ func (c *CPU) Run() int {
 			locals := instr.Arg()
 			c.locals = make([]int, locals+1)
 		case Push:
-			c.stack = append(c.stack, c.a)
+			c.stack = append(c.stack, c.regs[0])
 		case Pop:
-			c.b = c.stack[len(c.stack)-1]
+			c.regs[instr.Arg()] = c.stack[len(c.stack)-1]
 			c.stack = c.stack[:len(c.stack)-1]
 		case LoadLocal:
-			c.a = c.locals[instr.Arg()]
+			c.regs[0] = c.locals[instr.Arg()]
+		case StoreLocal:
+			// this is kind of a hack... the vm can only take one argument
+			// this assumes that the arg reg will be stored in the same numbered local
+			c.locals[instr.Arg()] = c.regs[instr.Arg()]
 		case Load:
-			c.a = c.locals[c.a]
+			c.regs[0] = c.locals[c.regs[0]]
 		case Store:
-			c.locals[c.b] = c.a
+			c.locals[c.regs[1]] = c.regs[0]
 		case LocalAddr:
-			c.a = instr.Arg()
+			c.regs[0] = instr.Arg()
 		case LoadInt:
-			c.a = instr.Arg()
+			c.regs[0] = instr.Arg()
 		case Add:
-			c.a = c.b + c.a
+			c.regs[0] = c.regs[1] + c.regs[0]
 		case Sub:
-			c.a = c.b - c.a
+			c.regs[0] = c.regs[1] - c.regs[0]
 		case Mul:
-			c.a = c.b * c.a
+			c.regs[0] = c.regs[1] * c.regs[0]
 		case Div:
-			c.a = c.b / c.a
+			c.regs[0] = c.regs[1] / c.regs[0]
 		case Neg:
-			c.a = -c.a
+			c.regs[0] = -c.regs[0]
 		case Eq:
-			if c.b == c.a {
-				c.a = 1
+			if c.regs[1] == c.regs[0] {
+				c.regs[0] = 1
 			} else {
-				c.a = 0
+				c.regs[0] = 0
 			}
 		case Ne:
-			if c.b != c.a {
-				c.a = 1
+			if c.regs[1] != c.regs[0] {
+				c.regs[0] = 1
 			} else {
-				c.a = 0
+				c.regs[0] = 0
 			}
 		case Lt:
-			if c.b < c.a {
-				c.a = 1
+			if c.regs[1] < c.regs[0] {
+				c.regs[0] = 1
 			} else {
-				c.a = 0
+				c.regs[0] = 0
 			}
 		case Le:
-			if c.b <= c.a {
-				c.a = 1
+			if c.regs[1] <= c.regs[0] {
+				c.regs[0] = 1
 			} else {
-				c.a = 0
+				c.regs[0] = 0
 			}
 		case Gt:
-			if c.b > c.a {
-				c.a = 1
+			if c.regs[1] > c.regs[0] {
+				c.regs[0] = 1
 			} else {
-				c.a = 0
+				c.regs[0] = 0
 			}
 		case Ge:
-			if c.b >= c.a {
-				c.a = 1
+			if c.regs[1] >= c.regs[0] {
+				c.regs[0] = 1
 			} else {
-				c.a = 0
+				c.regs[0] = 0
 			}
 		case Call:
 			c.callStack = append(c.callStack, c.pc)
 			c.localStack = append(c.localStack, c.locals)
 			c.pc = instr.Arg()
 		case JumpIfFalse:
-			if c.a == 0 {
+			if c.regs[0] == 0 {
 				c.pc = instr.Arg()
 			}
 		case Jump:
@@ -123,7 +126,7 @@ func (c *CPU) Run() int {
 			c.locals = c.localStack[len(c.localStack)-1]
 			c.localStack = c.localStack[:len(c.localStack)-1]
 		case Exit:
-			return c.a
+			return c.regs[0]
 		default:
 			panic("unknown opcode")
 		}

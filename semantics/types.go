@@ -60,6 +60,7 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 	case ast.FuncDecl:
 		tc.symtab.EnterScope(node)
 		defer tc.symtab.LeaveScope()
+		tc.defineFuncParams(node)
 	case ast.StmtList:
 		tc.symtab.EnterScope(node)
 		defer tc.symtab.LeaveScope()
@@ -110,7 +111,9 @@ func (tc *TypeChecker) check(node ast.NodeID) {
 		tc.ast.SetType(node, tc.ast.Type(tc.ast.Child(node, ast.ExprStmtExpr)))
 	case ast.StmtList:
 		tc.ast.SetType(node, tc.ast.Type(tc.ast.Child(node, tc.ast.NumChildren(node)-1)))
-	case ast.EmptyStmt:
+	case ast.Field:
+		tc.ast.SetType(node, tc.ast.Type(tc.ast.Child(node, ast.FieldTyp)))
+	case ast.EmptyStmt, ast.FieldList:
 		// nothing to do
 	default:
 		panic("todo: implement node kind " + tc.ast.Kind(node).String())
@@ -158,18 +161,42 @@ func (tc *TypeChecker) defineFunc(node ast.NodeID) {
 		tc.errorf(node, "cannot redefine function %s", tc.ast.NodeString(name))
 	}
 
+	paramsNode := tc.ast.Child(node, ast.FuncDeclParams)
+	paramFields := tc.ast.Children(paramsNode)
+
+	params := make([]types.Type, len(paramFields))
+	for i, paramField := range paramFields {
+		paramTyp := tc.ast.Child(paramField, ast.FieldTyp)
+		tc.check(paramTyp)
+		params[i] = tc.ast.Type(paramTyp)
+	}
+
 	ret := tc.ast.Child(node, ast.FuncDeclRet)
 
 	var typ types.Type
 
 	if ret == ast.InvalidNode {
-		typ = tc.uni.Func(nil)
+		typ = tc.uni.Func(params, nil)
 	} else {
 		tc.check(ret)
-		typ = tc.uni.Func(tc.ast.Type(ret))
+		typ = tc.uni.Func(params, tc.ast.Type(ret))
 	}
 
 	tc.symtab.NewSymbol(tc.ast.NodeString(name), ast.FuncSymbol, typ)
+}
+
+func (tc *TypeChecker) defineFuncParams(node ast.NodeID) {
+	paramsNode := tc.ast.Child(node, ast.FuncDeclParams)
+	paramFields := tc.ast.Children(paramsNode)
+
+	for _, paramField := range paramFields {
+		paramName := tc.ast.Child(paramField, ast.FieldName)
+		paramTyp := tc.ast.Child(paramField, ast.FieldTyp)
+
+		typ := tc.ast.Type(paramTyp)
+
+		tc.symtab.NewSymbol(tc.ast.NodeString(paramName), ast.VarSymbol, typ)
+	}
 }
 
 func (tc *TypeChecker) defineAssignStmt(node ast.NodeID) {
@@ -291,6 +318,26 @@ func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
 	if !ok {
 		tc.errorf(node, "cannot call non-function %s of type %s", tc.ast.NodeString(name), typ)
 		return
+	}
+
+	argsNode := tc.ast.Child(node, ast.CallExprArgs)
+	args := tc.ast.Children(argsNode)
+	if len(args) != len(fnTyp.ParamTypes()) {
+		tc.errorf(node, "wrong number of arguments to %s: expected %d, got %d", tc.ast.NodeString(name), len(fnTyp.ParamTypes()), len(args))
+		return
+	}
+	for i, arg := range args {
+		typ := tc.ast.Type(arg)
+		if typ == nil {
+			continue
+		}
+		if typ == types.UntypedInt && fnTyp.ParamTypes()[i] == types.Int {
+			tc.ast.SetType(arg, types.Int)
+			typ = types.Int
+		}
+		if typ != fnTyp.ParamTypes()[i] {
+			tc.errorf(node, "wrong type for argument: expected %s, got %s", fnTyp.ParamTypes()[i], typ)
+		}
 	}
 
 	tc.ast.SetType(node, fnTyp.ReturnType())

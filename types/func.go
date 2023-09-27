@@ -1,15 +1,23 @@
 package types
 
+import "strings"
+
 type Func struct {
-	// todo parameters
-	ret Type
+	params []Type
+	ret    Type
 }
 
 func (f *Func) String() string {
-	if f.ret != nil {
-		return "func() " + f.ret.String()
+	params := make([]string, len(f.params))
+	for i, p := range f.params {
+		params[i] = p.String()
 	}
-	return "func()"
+	pstr := strings.Join(params, ", ")
+
+	if f.ret != nil {
+		return "func(" + pstr + ") " + f.ret.String()
+	}
+	return "func(" + pstr + ")"
 }
 
 func (f *Func) Underlying() Type {
@@ -19,4 +27,9 @@ func (f *Func) Underlying() Type {
 // ReturnType returns the return type of the function.
 func (f *Func) ReturnType() Type {
 	return f.ret
+}
+
+// ParamTypes returns the parameter types of the function.
+func (f *Func) ParamTypes() []Type {
+	return f.params
 }

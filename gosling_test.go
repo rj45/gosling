@@ -1,7 +1,6 @@
 package main_test
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -287,6 +286,42 @@ var tests = []struct {
 		`,
 		output: 18,
 	},
+	{
+		name: "function call with 1 parameter",
+		input: `
+			func main() int {
+				return foo(3) * 3
+			}
+			func foo(a int) int {
+				return a+2
+			}
+		`,
+		output: 15,
+	},
+	{
+		name: "function call with 2 parameters",
+		input: `
+			func main() int {
+				return foo(3, 4) * 3
+			}
+			func foo(a int, b int) int {
+				return a+b
+			}
+		`,
+		output: 21,
+	},
+	{
+		name: "function call with 8 parameters",
+		input: `
+			func main() int {
+				return foo(1, 2, 3, 4, 5, 6, 7, 8)
+			}
+			func foo(a int, b int, c int, d int, e int, f int, g int, h int) int {
+				return a+b+c+d+e+f+g+h
+			}
+		`,
+		output: 36,
+	},
 }
 
 func TestCodegenWithVirtualMachine(t *testing.T) {
@@ -294,7 +329,6 @@ func TestCodegenWithVirtualMachine(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			fmt.Println(tt.name)
 			input := "func main() int " + tt.input
 			if strings.Contains(tt.input, "main()") {
 				input = tt.input
@@ -319,7 +353,7 @@ func TestCodegenWithVirtualMachine(t *testing.T) {
 	}
 }
 
-func TestCodegenWithAssembler(t *testing.T) {
+func TestCodegenNativeAssembly(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {

@@ -332,6 +332,13 @@ func TestParseCallExpr(t *testing.T) {
 			Name("foo"),
 			ExprList(Literal("1"), Literal("2")),
         )`},
+		{"foo(1+2, 4*8)", `CallExpr(
+			Name("foo"),
+			ExprList(
+				BinaryExpr("+", Literal("1"), Literal("2")),
+				BinaryExpr("*", Literal("4"), Literal("8")),
+			),
+		)`},
 	}
 	for _, tt := range tests {
 		a, stmt, errs := parseStmt(t, tt.src)

@@ -42,12 +42,16 @@ func (a *Asm) Push() {
 	a.instr(Push)
 }
 
-func (a *Asm) Pop() {
-	a.instr(Pop)
+func (a *Asm) Pop(reg int) {
+	a.instr1(Pop, reg)
 }
 
 func (a *Asm) LoadLocal(offset int) {
 	a.instr1(LoadLocal, offset)
+}
+
+func (a *Asm) StoreLocal(reg int) {
+	a.instr1(StoreLocal, reg)
 }
 
 func (a *Asm) Load() {
