@@ -7,13 +7,14 @@ import (
 	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/parser"
 	"github.com/rj45/gosling/semantics"
+	"github.com/rj45/gosling/types"
 )
 
-func parse(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
+func parse(t *testing.T, src string) (*ast.AST, *types.Universe, ast.NodeID, []error) {
 	parser := parser.New(ast.NewFile("test.gos", []byte(src)))
 	a, errs := parser.Parse()
 	if len(errs) > 0 {
-		return nil, ast.InvalidNode, errs
+		return nil, nil, ast.InvalidNode, errs
 	}
 
 	root := a.Root()
@@ -21,18 +22,20 @@ func parse(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
 		t.Errorf("Expected DeclList, but got %s", a.Kind(root))
 	}
 
-	_, errs = semantics.NewTypeChecker(a).Check(root)
+	tc := semantics.NewTypeChecker(a)
+
+	_, errs = tc.Check(root)
 	if errs != nil {
-		return nil, ast.InvalidNode, errs
+		return nil, nil, ast.InvalidNode, errs
 	}
 
-	return a, root, nil
+	return a, tc.Universe(), root, nil
 }
 
-func parseStmt(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
-	a, root, errs := parse(t, "func foo() {"+src+"}")
+func parseStmt(t *testing.T, src string) (*ast.AST, *types.Universe, ast.NodeID, []error) {
+	a, uni, root, errs := parse(t, "func foo() {"+src+"}")
 	if len(errs) > 0 {
-		return nil, ast.InvalidNode, errs
+		return nil, nil, ast.InvalidNode, errs
 	}
 
 	decl := a.Child(root, 0)
@@ -46,7 +49,7 @@ func parseStmt(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
 	}
 
 	stmt := a.Child(body, a.NumChildren(body)-1)
-	return a, stmt, nil
+	return a, uni, stmt, nil
 }
 
 func TestTypeChecking(t *testing.T) {
@@ -240,7 +243,7 @@ func TestTypeChecking(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, node, errs := parseStmt(t, tt.src)
+			a, uni, node, errs := parseStmt(t, tt.src)
 
 			if errs != nil {
 				for _, err := range errs {
@@ -260,10 +263,10 @@ func TestTypeChecking(t *testing.T) {
 
 			actual := a.Type(node)
 
-			if actual == nil && tt.expected != "" {
+			if actual == types.None && tt.expected != "" {
 				t.Errorf("Expected type %q, but got none", tt.expected)
-			} else if actual.String() != tt.expected {
-				t.Errorf("Expected: %s\nBut got: %s", tt.expected, actual)
+			} else if uni.StringOf(actual) != tt.expected {
+				t.Errorf("Expected: %s\nBut got: %s", tt.expected, uni.StringOf(actual))
 			}
 		})
 	}
@@ -400,7 +403,7 @@ func TestTypeCheckingDecls(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, node, errs := parse(t, tt.src)
+			a, uni, node, errs := parse(t, tt.src)
 
 			if errs != nil {
 				for _, err := range errs {
@@ -433,10 +436,10 @@ func TestTypeCheckingDecls(t *testing.T) {
 
 			actual := a.Type(node)
 
-			if actual == nil && tt.expected != "" {
+			if actual == types.None && tt.expected != "" {
 				t.Errorf("Expected type %q, but got none", tt.expected)
-			} else if actual.String() != tt.expected {
-				t.Errorf("Expected: %s\nBut got: %s", tt.expected, actual)
+			} else if uni.StringOf(actual) != tt.expected {
+				t.Errorf("Expected: %s\nBut got: %s", tt.expected, uni.StringOf(actual))
 			}
 		})
 	}

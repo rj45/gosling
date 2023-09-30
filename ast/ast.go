@@ -70,7 +70,7 @@ func (a *AST) Kind(id NodeID) Kind {
 // Type returns the type of the given node
 func (a *AST) Type(id NodeID) types.Type {
 	if id >= NodeID(len(a.typ)) {
-		return nil
+		return types.None
 	}
 	return a.typ[id]
 }
@@ -78,7 +78,7 @@ func (a *AST) Type(id NodeID) types.Type {
 // SetType sets the type of the given node
 func (a *AST) SetType(id NodeID, typ types.Type) {
 	for id >= NodeID(len(a.typ)) {
-		a.typ = append(a.typ, nil)
+		a.typ = append(a.typ, types.None)
 	}
 	a.typ[id] = typ
 }

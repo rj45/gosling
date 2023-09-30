@@ -24,6 +24,10 @@ func NewTypeChecker(a *ast.AST) *TypeChecker {
 	}
 }
 
+func (tc *TypeChecker) Universe() *types.Universe {
+	return tc.uni
+}
+
 // Check checks the AST for type errors, labeling the AST with types.
 func (tc *TypeChecker) Check(node ast.NodeID) (*ast.SymTab, []error) {
 	tc.check(node)
@@ -37,7 +41,7 @@ func (tc *TypeChecker) errorf(node ast.NodeID, msg string, args ...interface{}) 
 }
 
 func (tc *TypeChecker) check(node ast.NodeID) {
-	if node == ast.InvalidNode || tc.ast.Type(node) != nil {
+	if node == ast.InvalidNode || tc.ast.Type(node) != types.None {
 		return
 	}
 
@@ -135,7 +139,7 @@ func (tc *TypeChecker) checkExprChild(parent, child ast.NodeID) {
 
 		thenType := tc.ast.Type(then)
 		elsType := tc.ast.Type(els)
-		if thenType != nil && elsType != nil {
+		if thenType != types.None && elsType != types.None {
 			// todo: move this coercion logic to central place
 			if thenType == types.UntypedInt && elsType == types.Int {
 				tc.ast.SetType(then, types.Int)
@@ -148,7 +152,7 @@ func (tc *TypeChecker) checkExprChild(parent, child ast.NodeID) {
 			}
 
 			if thenType != elsType {
-				tc.errorf(parent, "if branches have mismatched types: %s and %s", thenType, elsType)
+				tc.errorf(parent, "if branches have mismatched types: %s and %s", tc.uni.StringOf(thenType), tc.uni.StringOf(elsType))
 			}
 		}
 	}
@@ -176,10 +180,10 @@ func (tc *TypeChecker) defineFunc(node ast.NodeID) {
 	var typ types.Type
 
 	if ret == ast.InvalidNode {
-		typ = tc.uni.Func(params, nil)
+		typ = tc.uni.FuncFor(params, types.Void)
 	} else {
 		tc.check(ret)
-		typ = tc.uni.Func(params, tc.ast.Type(ret))
+		typ = tc.uni.FuncFor(params, tc.ast.Type(ret))
 	}
 
 	tc.symtab.NewSymbol(tc.ast.NodeString(name), ast.FuncSymbol, typ)
@@ -234,7 +238,12 @@ func (tc *TypeChecker) checkFuncDecl(node ast.NodeID) {
 
 	tc.ast.SetType(node, sym.Type)
 
-	if sym.Type != nil && sym.Type.(*types.Func).ReturnType() != nil {
+	if sym.Type == types.None {
+		return
+	}
+
+	retType := tc.uni.Func(sym.Type).ReturnType()
+	if retType != types.Void && retType != types.None {
 		body := tc.ast.Child(node, ast.FuncDeclBody)
 		if !tc.returns(body) {
 			tc.errorf(node, "missing return statement in function %s", tc.ast.NodeString(name))
@@ -267,12 +276,12 @@ func (tc *TypeChecker) checkBinaryExpr(node ast.NodeID) {
 	lhs := tc.ast.Type(tc.ast.Child(node, ast.BinaryExprLHS))
 	rhs := tc.ast.Type(tc.ast.Child(node, ast.BinaryExprRHS))
 
-	if lhs == nil || rhs == nil {
+	if lhs == types.None || rhs == types.None {
 		return
 	}
 
-	lhs = lhs.Underlying()
-	rhs = rhs.Underlying()
+	lhs = tc.uni.Underlying(lhs)
+	rhs = tc.uni.Underlying(rhs)
 
 	switch tc.ast.Token(node).Kind() {
 	case token.Eq, token.Ne:
@@ -300,22 +309,21 @@ func (tc *TypeChecker) checkUnaryExpr(node ast.NodeID) {
 func (tc *TypeChecker) checkDerefExpr(node ast.NodeID) {
 	child := tc.ast.Child(node, ast.DerefExprExpr)
 	typ := tc.ast.Type(child)
-	if typ == nil {
+	if typ == types.None {
 		return
 	}
 
-	ptr, ok := typ.(*types.Pointer)
-	if !ok {
-		tc.errorf(node, "cannot dereference non-pointer type %s", typ)
+	if typ.Indirections() == 0 {
+		tc.errorf(node, "cannot dereference non-pointer type %s", tc.uni.StringOf(typ))
 		return
 	}
-	tc.ast.SetType(node, ptr.Elem())
+	tc.ast.SetType(node, typ.Deref())
 }
 
 func (tc *TypeChecker) checkAddrExpr(node ast.NodeID) {
 	child := tc.ast.Child(node, ast.AddrExprExpr)
 	typ := tc.ast.Type(child)
-	if typ == nil {
+	if typ == types.None {
 		return
 	}
 
@@ -324,7 +332,12 @@ func (tc *TypeChecker) checkAddrExpr(node ast.NodeID) {
 		return
 	}
 
-	tc.ast.SetType(node, tc.uni.Pointer(typ))
+	if typ.Indirections() >= 3 {
+		tc.errorf(node, "cannot take address of triple pointer type %s", tc.uni.StringOf(typ))
+		return
+	}
+
+	tc.ast.SetType(node, typ.Pointer())
 }
 
 func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
@@ -340,11 +353,11 @@ func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
 
 	typ := sym.Type
 
-	fnTyp, ok := typ.(*types.Func)
-	if !ok {
-		tc.errorf(node, "cannot call non-function %s of type %s", tc.ast.NodeString(name), typ)
+	if typ.Kind() != types.FuncType {
+		tc.errorf(node, "cannot call non-function %s of type %s", tc.ast.NodeString(name), tc.uni.StringOf(typ))
 		return
 	}
+	fnTyp := tc.uni.Func(typ)
 
 	argsNode := tc.ast.Child(node, ast.CallExprArgs)
 	args := tc.ast.Children(argsNode)
@@ -354,7 +367,7 @@ func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
 	}
 	for i, arg := range args {
 		typ := tc.ast.Type(arg)
-		if typ == nil {
+		if typ == types.None {
 			continue
 		}
 		if typ == types.UntypedInt && fnTyp.ParamTypes()[i] == types.Int {
@@ -362,7 +375,7 @@ func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
 			typ = types.Int
 		}
 		if typ != fnTyp.ParamTypes()[i] {
-			tc.errorf(node, "wrong type for argument: expected %s, got %s", fnTyp.ParamTypes()[i], typ)
+			tc.errorf(node, "wrong type for argument: expected %s, got %s", tc.uni.StringOf(fnTyp.ParamTypes()[i]), tc.uni.StringOf(typ))
 		}
 	}
 
@@ -412,7 +425,7 @@ func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
 	lhsType := tc.ast.Type(lhs)
 	rhsType := tc.ast.Type(rhs)
 
-	if rhsType == nil || lhsType == nil {
+	if rhsType == types.None || lhsType == types.None {
 		return
 	}
 
@@ -421,7 +434,7 @@ func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
 	}
 
 	if lhsType != rhsType && tc.ast.Token(node).Kind() != token.Define {
-		tc.errorf(node, "cannot assign %s to %s", rhsType, lhsType)
+		tc.errorf(node, "cannot assign %s to %s", tc.uni.StringOf(rhsType), tc.uni.StringOf(lhsType))
 		return
 	}
 
@@ -431,16 +444,16 @@ func (tc *TypeChecker) checkAssignStmt(node ast.NodeID) {
 func (tc *TypeChecker) checkIfExpr(node ast.NodeID) {
 	cond := tc.ast.Child(node, ast.IfExprCond)
 	condType := tc.ast.Type(cond)
-	if condType == nil {
+	if condType == types.None {
 		return
 	}
-	if tc.ast.Type(cond).Underlying() != types.Bool {
-		tc.errorf(node, "if condition must be bool but was %s", condType)
+	if tc.uni.Underlying(tc.ast.Type(cond)) != types.Bool {
+		tc.errorf(node, "if condition must be bool but was %s", tc.uni.StringOf(condType))
 		return
 	}
 
 	then := tc.ast.Child(node, ast.IfExprThen)
-	if thenType := tc.ast.Type(then); thenType != nil {
+	if thenType := tc.ast.Type(then); thenType != types.None {
 		tc.ast.SetType(node, thenType)
 	}
 }
@@ -448,11 +461,11 @@ func (tc *TypeChecker) checkIfExpr(node ast.NodeID) {
 func (tc *TypeChecker) checkForStmt(node ast.NodeID) {
 	cond := tc.ast.Child(node, ast.ForStmtCond)
 	condType := tc.ast.Type(cond)
-	if condType == nil {
+	if condType == types.None {
 		return
 	}
-	if tc.ast.Type(cond).Underlying() != types.Bool {
-		tc.errorf(node, "for condition must be bool but was %s", condType)
+	if tc.uni.Underlying(tc.ast.Type(cond)) != types.Bool {
+		tc.errorf(node, "for condition must be bool but was %s", tc.uni.StringOf(condType))
 		return
 	}
 }
@@ -477,13 +490,13 @@ func (tc *TypeChecker) checkReturnStmt(node ast.NodeID) {
 	}
 
 	fnTypeT := fnSym.Type
-	if fnTypeT == nil {
+	if fnTypeT == types.None {
 		panic("function symbol without type")
 	}
-	fnType := fnTypeT.(*types.Func)
+	fnType := tc.uni.Func(fnTypeT)
 	retType := fnType.ReturnType()
 
-	if retType == nil {
+	if retType == types.Void {
 		if len(children) != 0 {
 			tc.errorf(node, "cannot return value from void function")
 		}
@@ -497,7 +510,7 @@ func (tc *TypeChecker) checkReturnStmt(node ast.NodeID) {
 	}
 
 	typ := tc.ast.Type(children[0])
-	if typ == nil {
+	if typ == types.None {
 		return
 	}
 
@@ -507,7 +520,7 @@ func (tc *TypeChecker) checkReturnStmt(node ast.NodeID) {
 	}
 
 	if typ != retType {
-		tc.errorf(node, "cannot return %s from function returning %s", typ, retType)
+		tc.errorf(node, "cannot return %s from function returning %s", tc.uni.StringOf(typ), tc.uni.StringOf(retType))
 	}
 	tc.ast.SetType(node, typ)
 }

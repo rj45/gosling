@@ -3,6 +3,7 @@ package types
 import "strings"
 
 type Func struct {
+	uni    *Universe
 	params []Type
 	ret    Type
 }
@@ -10,18 +11,14 @@ type Func struct {
 func (f *Func) String() string {
 	params := make([]string, len(f.params))
 	for i, p := range f.params {
-		params[i] = p.String()
+		params[i] = f.uni.StringOf(p)
 	}
 	pstr := strings.Join(params, ", ")
 
-	if f.ret != nil {
-		return "func(" + pstr + ") " + f.ret.String()
+	if f.ret != Void {
+		return "func(" + pstr + ") " + f.uni.StringOf(f.ret)
 	}
 	return "func(" + pstr + ")"
-}
-
-func (f *Func) Underlying() Type {
-	return f
 }
 
 // ReturnType returns the return type of the function.

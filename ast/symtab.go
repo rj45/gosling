@@ -1,6 +1,8 @@
 package ast
 
-import "github.com/rj45/gosling/types"
+import (
+	"github.com/rj45/gosling/types"
+)
 
 type SymbolKind uint8
 

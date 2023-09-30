@@ -4,26 +4,14 @@ package types
 // It is used to avoid repeated allocations of basic types.
 // It also allows to compare types by their address.
 type Universe struct {
-	pointers map[Type]*Pointer
-	funcs    []Func
+	funcs []Func
 }
 
 func NewUniverse() *Universe {
-	return &Universe{
-		pointers: make(map[Type]*Pointer),
-	}
+	return &Universe{}
 }
 
-func (u *Universe) Pointer(elem Type) *Pointer {
-	p, ok := u.pointers[elem]
-	if !ok {
-		p = &Pointer{elem: elem}
-		u.pointers[elem] = p
-	}
-	return p
-}
-
-func (u *Universe) Func(params []Type, ret Type) *Func {
+func (u *Universe) FuncFor(params []Type, ret Type) Type {
 outer:
 	for i, f := range u.funcs {
 		if len(f.params) != len(params) {
@@ -35,10 +23,45 @@ outer:
 			}
 		}
 		if f.ret == ret {
-			return &u.funcs[i]
+			return newType(FuncType, i, 0)
 		}
 	}
-	f := Func{params: params, ret: ret}
+	f := Func{uni: u, params: params, ret: ret}
 	u.funcs = append(u.funcs, f)
-	return &u.funcs[len(u.funcs)-1]
+	return newType(FuncType, len(u.funcs)-1, 0)
+}
+
+func (u *Universe) Basic(t Type) *Basic {
+	if t.Kind() != BasicType {
+		panic("not a basic type")
+	}
+	return &basicInfos[t.Index()]
+}
+
+func (u *Universe) Func(t Type) *Func {
+	if t.Kind() != FuncType {
+		panic("not a func type")
+	}
+	return &u.funcs[t.Index()]
+}
+
+func (u *Universe) StringOf(t Type) string {
+	prefix := ""
+	for i := 0; i < t.Indirections(); i++ {
+		prefix += "*"
+	}
+
+	switch t.Kind() {
+	case BasicType:
+		return prefix + u.Basic(t).String()
+	case FuncType:
+		return prefix + u.Func(t).String()
+	default:
+		panic("unknown type kind")
+	}
+}
+
+func (u *Universe) Underlying(t Type) Type {
+	// todo: implement this
+	return t
 }

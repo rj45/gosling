@@ -1,9 +1,7 @@
 package types
 
-type Basic uint8
-
 const (
-	Invalid Basic = iota
+	None Type = iota
 	Void
 	Int
 	Bool
@@ -18,13 +16,13 @@ const (
 	isBoolean
 )
 
-type basicInfo struct {
+type Basic struct {
 	name  string
 	flags basicFlags
 }
 
-var basicInfos = [...]basicInfo{
-	Invalid:    {"invalid", 0},
+var basicInfos = [...]Basic{
+	None:       {"none", 0},
 	Void:       {"void", 0},
 	Int:        {"int", isInteger},
 	Bool:       {"bool", isBoolean},
@@ -32,21 +30,17 @@ var basicInfos = [...]basicInfo{
 }
 
 func (b Basic) String() string {
-	return basicInfos[b].name
+	return b.name
 }
 
 func (b Basic) IsInteger() bool {
-	return basicInfos[b].flags&isInteger != 0
+	return b.flags&isInteger != 0
 }
 
 func (b Basic) IsBoolean() bool {
-	return basicInfos[b].flags&isBoolean != 0
+	return b.flags&isBoolean != 0
 }
 
 func (b Basic) IsUntyped() bool {
-	return basicInfos[b].flags&isUntyped != 0
-}
-
-func (b Basic) Underlying() Type {
-	return b
+	return b.flags&isUntyped != 0
 }

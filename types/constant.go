@@ -5,8 +5,8 @@ import (
 )
 
 type Const interface {
-	Type
 	IsConst() bool
+	String() string
 }
 
 type int64Const int64
