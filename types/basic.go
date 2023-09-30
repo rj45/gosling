@@ -26,7 +26,7 @@ var basicInfos = [...]Basic{
 	Void:       {"void", 0},
 	Int:        {"int", isInteger},
 	Bool:       {"bool", isBoolean},
-	UntypedInt: {"untyped int", isUntyped | isInteger},
+	UntypedInt: {"int constant", isUntyped | isInteger},
 }
 
 func (b Basic) String() string {

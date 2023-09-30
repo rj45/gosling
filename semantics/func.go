@@ -90,3 +90,57 @@ func (tc *TypeChecker) returns(node ast.NodeID) bool {
 	}
 	return false
 }
+
+func (tc *TypeChecker) checkReturnStmt(node ast.NodeID) {
+	children := tc.ast.Children(node)
+
+	fnScope := tc.symtab.LocalScope()
+	if fnScope == ast.InvalidScope {
+		panic("return statement outside of function")
+	}
+	fnNode := tc.symtab.ScopeNode(fnScope)
+	if fnNode == ast.InvalidNode {
+		panic("function scope without function node")
+	}
+
+	fnName := tc.ast.Child(fnNode, ast.FuncDeclName)
+	fnSym := tc.symtab.Lookup(tc.ast.NodeString(fnName))
+
+	if fnSym == nil {
+		panic("function scope without function symbol")
+	}
+
+	fnTypeT := fnSym.Type
+	if fnTypeT == types.None {
+		panic("function symbol without type")
+	}
+	fnType := tc.uni.Func(fnTypeT)
+	retType := fnType.ReturnType()
+
+	if retType == types.Void {
+		if len(children) != 0 {
+			tc.errorf(node, "cannot return value from void function")
+		}
+		tc.ast.SetType(node, types.Void)
+		return
+	}
+
+	if len(children) != 1 {
+		tc.errorf(node, "invalid return statement")
+		return
+	}
+
+	typ := tc.ast.Type(children[0])
+	if typ == types.None {
+		return
+	}
+
+	uniTyp := tc.uni.Unify(typ, retType)
+
+	if uniTyp == types.None {
+		tc.errorf(node, "cannot return %s from function returning %s", tc.uni.StringOf(typ), tc.uni.StringOf(retType))
+		return
+	}
+
+	tc.ast.SetType(node, uniTyp)
+}

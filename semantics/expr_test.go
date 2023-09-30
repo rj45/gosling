@@ -15,9 +15,9 @@ func TestTypeCheckingExprs(t *testing.T) {
 		err      string
 	}{
 		{
-			name:     "int literal is untyped int",
+			name:     "int literal is int constant",
 			src:      "42",
-			expected: "untyped int",
+			expected: "int constant",
 			err:      "",
 		},
 		{
@@ -33,9 +33,9 @@ func TestTypeCheckingExprs(t *testing.T) {
 			err:      "",
 		},
 		{
-			name:     "adding two int literals is untyped int",
+			name:     "adding two int literals is int constant",
 			src:      "1+2",
-			expected: "untyped int",
+			expected: "int constant",
 			err:      "",
 		},
 		{
@@ -51,9 +51,9 @@ func TestTypeCheckingExprs(t *testing.T) {
 			err:      "",
 		},
 		{
-			name:     "unary minus is untyped int",
+			name:     "unary minus is int constant",
 			src:      "-1",
-			expected: "untyped int",
+			expected: "int constant",
 			err:      "",
 		},
 		{
@@ -109,7 +109,7 @@ func TestTypeCheckingExprs(t *testing.T) {
 			name:     "if expression with mismatched types",
 			src:      "a := if true {true} else {2}",
 			expected: "",
-			err:      "if branches have mismatched types: bool and untyped int",
+			err:      "if branches have mismatched types: bool and int constant",
 		},
 		{
 			name:     "if expression as statement does not get error",
@@ -118,7 +118,7 @@ func TestTypeCheckingExprs(t *testing.T) {
 			err:      "",
 		},
 		{
-			name:     "if expression with untyped int becomes int",
+			name:     "if expression with int constant becomes int",
 			src:      "a := 2; b := if true {2} else {a}; b",
 			expected: "int",
 			err:      "",
@@ -133,7 +133,7 @@ func TestTypeCheckingExprs(t *testing.T) {
 			name:     "block expression",
 			src:      "a := true; a = {true; 2}; a",
 			expected: "",
-			err:      "cannot assign int to bool",
+			err:      "cannot assign int constant to bool",
 		},
 		{
 			name:     "variable use before definition",

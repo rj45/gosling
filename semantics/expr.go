@@ -22,20 +22,14 @@ func (tc *TypeChecker) checkExprChild(parent, child ast.NodeID) {
 		thenType := tc.ast.Type(then)
 		elsType := tc.ast.Type(els)
 		if thenType != types.None && elsType != types.None {
-			// todo: move this coercion logic to central place
-			if thenType == types.UntypedInt && elsType == types.Int {
-				tc.ast.SetType(then, types.Int)
-				thenType = types.Int
-			}
-
-			if thenType == types.Int && elsType == types.UntypedInt {
-				tc.ast.SetType(els, types.Int)
-				elsType = types.Int
-			}
-
-			if thenType != elsType {
+			uniType := tc.uni.Unify(thenType, elsType)
+			if uniType == types.None {
 				tc.errorf(parent, "if branches have mismatched types: %s and %s", tc.uni.StringOf(thenType), tc.uni.StringOf(elsType))
+				return
 			}
+
+			tc.ast.SetType(then, uniType)
+			tc.ast.SetType(els, uniType)
 		}
 	}
 }
@@ -62,11 +56,9 @@ func (tc *TypeChecker) checkBinaryExpr(node ast.NodeID) {
 		return
 	}
 
-	// todo: this is far too naive
-	if lhs == types.UntypedInt {
-		tc.ast.SetType(node, rhs)
-	}
-	tc.ast.SetType(node, lhs)
+	uniType := tc.uni.Unify(lhs, rhs)
+	tc.ast.SetType(node, uniType)
+	tc.ast.SetType(node, uniType)
 }
 
 func (tc *TypeChecker) checkUnaryExpr(node ast.NodeID) {
@@ -138,13 +130,12 @@ func (tc *TypeChecker) checkCallExpr(node ast.NodeID) {
 		if typ == types.None {
 			continue
 		}
-		if typ == types.UntypedInt && fnTyp.ParamTypes()[i] == types.Int {
-			tc.ast.SetType(arg, types.Int)
-			typ = types.Int
-		}
-		if typ != fnTyp.ParamTypes()[i] {
+		uniType := tc.uni.Unify(typ, fnTyp.ParamTypes()[i])
+		if uniType == types.None {
 			tc.errorf(node, "wrong type for argument: expected %s, got %s", tc.uni.StringOf(fnTyp.ParamTypes()[i]), tc.uni.StringOf(typ))
+			continue
 		}
+		tc.ast.SetType(arg, uniType)
 	}
 
 	tc.ast.SetType(node, fnTyp.ReturnType())
