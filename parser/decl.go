@@ -66,7 +66,7 @@ func (p *Parser) fieldList(sep token.Kind, end token.Kind) ast.NodeID {
 	}
 
 	nodes := []ast.NodeID{p.field()}
-	for p.tok.Kind() == token.Comma {
+	for p.tok.Kind() == sep {
 		p.next()
 		nodes = append(nodes, p.field())
 	}

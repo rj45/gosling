@@ -166,6 +166,8 @@ func TestParseAssignStmt(t *testing.T) {
 }
 
 func parse(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
+	t.Helper()
+
 	parser := parser.New(ast.NewFile("test.gos", []byte(src)))
 	a, errs := parser.Parse()
 	if len(errs) > 0 {
@@ -181,6 +183,8 @@ func parse(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
 }
 
 func parseStmt(t *testing.T, src string) (*ast.AST, ast.NodeID, []error) {
+	t.Helper()
+
 	a, root, errs := parse(t, "func main() int {"+src+"}")
 	if len(errs) > 0 {
 		return nil, ast.InvalidNode, errs

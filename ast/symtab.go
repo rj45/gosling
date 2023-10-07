@@ -119,7 +119,7 @@ func (t *SymTab) ScopeNode(id ScopeID) NodeID {
 func (t *SymTab) LocalScope() ScopeID {
 	for scope := t.scope; t.scopes[scope].level > InvalidScope; scope = t.scopes[scope].parent {
 		if t.scopes[scope].level == LocalScope {
-			return ScopeID(scope)
+			return scope
 		}
 	}
 	return InvalidScope

@@ -90,7 +90,7 @@ func (a *AST) NumChildren(id NodeID) int {
 	if id+1 < NodeID(len(a.node)) {
 		end = a.node[id+1].firstChild()
 	}
-	return int(end - start)
+	return end - start
 }
 
 // Child returns the nth child of the given node
@@ -100,7 +100,7 @@ func (a *AST) Child(id NodeID, index int) NodeID {
 	if id+1 < NodeID(len(a.node)) {
 		end = a.node[id+1].firstChild()
 	}
-	if index < 0 || index >= int(end-start) {
+	if index < 0 || index >= end-start {
 		return InvalidNode
 	}
 	return a.child[start+index]

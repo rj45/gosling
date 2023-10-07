@@ -11,7 +11,7 @@ import (
 
 func main() {
 	src := []byte(os.Args[1])
-	file := ast.NewFile("test.gos", []byte(src))
+	file := ast.NewFile("test.gos", src)
 	asm := &aarch64.Assembly{Out: os.Stdout}
 	errs := compile.Compile(file, asm)
 	if len(errs) > 0 {
