@@ -37,8 +37,11 @@ func (id OpID) String() string {
 type OpLevel uint8
 
 const (
+	// Common ops -- common ops that are used by all levels.
+	Common OpLevel = iota
+
 	// High Level IR -- the result of semantic analysis.
-	HLIR OpLevel = iota
+	HLIR
 
 	// Low Level IR -- the result of lowering.
 	LLIR

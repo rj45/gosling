@@ -1,6 +1,10 @@
 package ir
 
 import (
+	"fmt"
+	"io"
+	"strings"
+
 	"github.com/rj45/gosling/token"
 	"github.com/rj45/gosling/types"
 )
@@ -39,12 +43,12 @@ type Block struct {
 }
 
 // NewBlock creates a new block in the function.
-func (fn *Func) NewBlock(name string, op Op, token token.Token) ValueID {
+func (fn *Func) NewBlock(name string, op Op, token token.Token, args ...ValueID) ValueID {
 	id := blockID(len(fn.block))
 	if fn.blockForValue == nil {
 		fn.blockForValue = make(map[ValueID]blockID)
 	}
-	terminator := fn.addValue(op, id, fn.lookupType(types.Void), token)
+	terminator := fn.addValue(op, id, fn.lookupType(types.Void), token, args...)
 	fn.block = append(fn.block, Block{
 		Func:       fn,
 		Name:       name,
@@ -108,4 +112,26 @@ func (b *Block) ValueID() ValueID {
 // Terminator returns the terminator of the block.
 func (b *Block) Terminator() ValueID {
 	return b.terminator
+}
+
+func (b *Block) UpdateTerminator(Op Op, args ...ValueID) {
+	b.Func.SetValueOp(b.terminator, Op)
+	b.Func.SetOperands(b.terminator, args...)
+}
+
+func (b *Block) Dump() string {
+	w := &strings.Builder{}
+	b.dump(w)
+	return w.String()
+}
+
+func (b *Block) dump(w io.Writer) {
+	fmt.Fprintln(w, b.Name+":")
+	for _, v := range b.value {
+		v.dump(w, b.Func)
+	}
+
+	if b.terminator != InvalidValue {
+		b.terminator.dump(w, b.Func)
+	}
 }

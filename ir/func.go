@@ -1,6 +1,11 @@
 package ir
 
 import (
+	"fmt"
+	"io"
+	"log"
+	"strings"
+
 	"github.com/rj45/gosling/token"
 	"github.com/rj45/gosling/types"
 )
@@ -27,6 +32,9 @@ type Func struct {
 	// The list of types indexed by ValueID.
 	typ []types.Type
 
+	// The list of assigned registers indexed by ValueID.
+	regs []RegMask
+
 	// The list of operands for values.
 	operand []ValueID
 
@@ -40,6 +48,10 @@ type Func struct {
 
 	// The list of blocks indexed by ValueID.
 	blockForValue map[ValueID]blockID
+
+	// The list of constants
+	constantValue map[Constant]ValueID
+	valueConstant map[ValueID]Constant
 }
 
 // NewFunc creates a new Func.
@@ -61,6 +73,7 @@ func NewFunc(file *File) *Func {
 			// the first types are always None and Void
 			types.None, types.Void,
 		},
+		regs: []RegMask{0},
 	}
 }
 
@@ -151,6 +164,7 @@ func (fn *Func) SetOperands(id ValueID, operands ...ValueID) {
 		}
 
 		copy(fn.operand[n.firstOperand():], operands)
+		fn.value[id] = newValue(n.opID(), n.typeID(), n.block(), len(operands), n.firstOperand())
 		return
 	}
 
@@ -183,6 +197,8 @@ func (fn *Func) addValue(op Op, block blockID, typ typeID, token token.Token, op
 
 	fn.value = append(fn.value, newValue(op.OpID(), typ, block, len(operands), firstOperand))
 	fn.token = append(fn.token, token)
+	fn.regs = append(fn.regs, 0)
+
 	return id
 }
 
@@ -198,13 +214,21 @@ func (fn *Func) lookupType(typ types.Type) typeID {
 		}
 	}
 
-	return typeID(len(fn.typ))
+	id := typeID(len(fn.typ))
+	fn.typ = append(fn.typ, typ)
+	return id
 }
 
 // SetValueBlock sets the block of the given value.
 func (fn *Func) SetValueBlock(id ValueID, block ValueID) {
 	n := fn.value[id]
 	fn.value[id] = newValue(n.opID(), n.typeID(), fn.blockForValue[block], n.numOperands(), n.firstOperand())
+}
+
+// SetValueOp sets the op of the given value.
+func (fn *Func) SetValueOp(id ValueID, op Op) {
+	n := fn.value[id]
+	fn.value[id] = newValue(op.OpID(), n.typeID(), n.block(), n.numOperands(), n.firstOperand())
 }
 
 // String returns the name of the function.
@@ -218,4 +242,54 @@ func (fn *Func) ValueBytes(id ValueID) []byte {
 
 func (fn *Func) ValueString(id ValueID) string {
 	return fn.TokenString(fn.Token(id))
+}
+
+// ValueForConst returns the value for the given constant.
+func (fn *Func) ValueForConst(c Constant) ValueID {
+	if id, ok := fn.constantValue[c]; ok {
+		return id
+	}
+	if fn.constantValue == nil {
+		fn.constantValue = map[Constant]ValueID{}
+		fn.valueConstant = map[ValueID]Constant{}
+	}
+	id := fn.AddValue(Const, 0, types.Int)
+	fn.constantValue[c] = id
+	fn.valueConstant[id] = c
+
+	return id
+}
+
+// Regs returns the registers for the given value.
+func (fn *Func) Regs(id ValueID) RegMask {
+	return fn.regs[id]
+}
+
+// SetRegs sets the registers for the given value.
+func (fn *Func) SetRegs(id ValueID, regs RegMask) {
+	fn.regs[id] = regs
+}
+
+// AddReg adds a register to the given value.
+func (fn *Func) AddReg(id ValueID, reg RegID) {
+	if len(fn.regs) <= int(id) {
+		log.Panicf("expected %d to be less than %d", id, len(fn.regs))
+	}
+	fn.regs[id] |= 1 << reg
+}
+
+func (fn *Func) Dump() string {
+	w := &strings.Builder{}
+	fn.dump(w)
+	return w.String()
+}
+
+func (fn *Func) dump(w io.Writer) {
+	// todo: emit signature
+	fmt.Fprintln(w, "func", fn.Name, "{")
+	for _, block := range fn.block {
+		block.dump(w)
+	}
+	fmt.Fprintln(w, "}")
+	fmt.Fprintln(w)
 }

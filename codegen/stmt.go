@@ -64,6 +64,7 @@ func (g *CodeGen) genForStmt(node ast.NodeID) {
 	if cond != ast.InvalidNode {
 		g.genExpr(g.ast.Child(cond, ast.ExprStmtExpr))
 		g.asm.JumpIfFalse("endloop", label)
+		g.asm.Label("loopbody", label)
 	}
 	g.genStmt(body)
 	if post != ast.InvalidNode {

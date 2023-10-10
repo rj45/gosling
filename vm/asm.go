@@ -3,6 +3,8 @@ package vm
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/rj45/gosling/types"
 )
 
 // Asm is a simple assembler for the virtual machine.
@@ -26,6 +28,14 @@ func (a *Asm) instr(op Opcode) {
 
 func (a *Asm) instr1(op Opcode, arg int) {
 	a.Program = append(a.Program, Instr(op)|Instr(arg)<<8)
+}
+
+func (a *Asm) Types(*types.Universe) {
+}
+
+func (a *Asm) DeclareFunction(fnname string, sig types.Type) {
+	_ = fnname
+	_ = sig
 }
 
 func (a *Asm) Prologue(name string, locals int) {

@@ -2,10 +2,13 @@ package codegen
 
 import (
 	"github.com/rj45/gosling/ast"
+	"github.com/rj45/gosling/types"
 )
 
 type Assembly interface {
 	WordSize() int
+
+	Types(*types.Universe)
 
 	Prologue(string, int)
 	Epilogue()
@@ -39,23 +42,28 @@ type Assembly interface {
 	JumpIfFalse(string, int)
 	Jump(string, int)
 	Label(string, int)
+
+	DeclareFunction(string, types.Type)
 }
 
 type CodeGen struct {
 	ast    *ast.AST
 	symtab *ast.SymTab
 	asm    Assembly
+	types  *types.Universe
 	label  int
 }
 
-func New(ast *ast.AST, symtab *ast.SymTab, asm Assembly) *CodeGen {
+func New(ast *ast.AST, symtab *ast.SymTab, types *types.Universe, asm Assembly) *CodeGen {
 	return &CodeGen{
 		ast:    ast,
 		symtab: symtab,
+		types:  types,
 		asm:    asm,
 	}
 }
 
 func (g *CodeGen) Generate() {
+	g.asm.Types(g.types)
 	g.genDeclList(g.ast.Root())
 }

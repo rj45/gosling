@@ -15,11 +15,16 @@ func (g *CodeGen) genIfExpr(node ast.NodeID) {
 	g.label++
 
 	g.genExpr(cond)
-	g.asm.JumpIfFalse("else", label)
+	if els != ast.InvalidNode {
+		g.asm.JumpIfFalse("else", label)
+	} else {
+		g.asm.JumpIfFalse("endif", label)
+	}
+	g.asm.Label("then", label)
 	g.genStmt(then)
 	g.asm.Jump("endif", label)
-	g.asm.Label("else", label)
 	if els != ast.InvalidNode {
+		g.asm.Label("else", label)
 		g.genStmt(els)
 	}
 	g.asm.Label("endif", label)

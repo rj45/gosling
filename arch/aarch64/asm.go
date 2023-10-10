@@ -3,6 +3,8 @@ package aarch64
 import (
 	"fmt"
 	"io"
+
+	"github.com/rj45/gosling/types"
 )
 
 var argRegs = []string{"x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7"}
@@ -19,6 +21,14 @@ func align(n int, align int) int {
 
 func (g *Assembly) printf(format string, args ...interface{}) {
 	fmt.Fprintf(g.Out, format+"\n", args...)
+}
+
+func (g *Assembly) Types(*types.Universe) {
+}
+
+func (g *Assembly) DeclareFunction(fnname string, sig types.Type) {
+	_ = fnname
+	_ = sig
 }
 
 func (g *Assembly) Prologue(fnname string, stacksize int) {

@@ -8,7 +8,12 @@ func (g *CodeGen) genDeclList(node ast.NodeID) {
 
 	decls := g.ast.Children(node)
 
-	// generate main func first
+	// declare all functions first
+	for _, decl := range decls {
+		g.asm.DeclareFunction(g.ast.NodeString(g.ast.Child(decl, ast.FuncDeclName)), g.ast.Type(decl))
+	}
+
+	// then generate main func
 	for _, decl := range decls {
 		if g.ast.Kind(decl) != ast.FuncDecl {
 			continue
@@ -19,7 +24,7 @@ func (g *CodeGen) genDeclList(node ast.NodeID) {
 		g.genDecl(decl)
 	}
 
-	// generate other funcs
+	// then generate other funcs
 	for _, decl := range decls {
 		if g.ast.Kind(decl) == ast.FuncDecl && g.ast.NodeString(g.ast.Child(decl, ast.FuncDeclName)) == "main" {
 			continue

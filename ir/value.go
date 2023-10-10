@@ -1,5 +1,13 @@
 package ir
 
+import (
+	"fmt"
+	"io"
+	"strings"
+
+	"github.com/rj45/gosling/types"
+)
+
 // ValueID is a reference to a value in the IR. Operands of values are
 // referenced by ValueID, and any references to blocks are also ValueIDs
 // pointing to the terminator instruction of the block.
@@ -72,4 +80,46 @@ func (n value) numOperands() int {
 // firstOperand returns the first operand in the operands list
 func (n value) firstOperand() int {
 	return int(n>>44) & 0xfffff
+}
+
+func (v ValueID) string(f *Func) string {
+	if b, ok := f.blockForValue[v]; ok {
+		return f.block[b].Name
+	}
+	if f.Regs(v).IsEmpty() {
+		return fmt.Sprintf("v%d", int(v))
+	}
+	return f.Regs(v).String()
+}
+
+func (v ValueID) dump(w io.Writer, f *Func) {
+	var oper []string
+
+	for i := 0; i < f.NumOperands(v); i++ {
+		ov := f.Operand(v, i)
+		if c, ok := f.valueConstant[ov]; ok {
+			oper = append(oper, c.String())
+			continue
+		}
+
+		if !f.Regs(ov).IsEmpty() {
+			oper = append(oper, f.Regs(ov).String())
+			continue
+		}
+
+		oper = append(oper, ov.string(f))
+	}
+
+	ostr := ""
+	if len(oper) > 0 {
+		ostr = " " + strings.Join(oper, ", ")
+	}
+
+	val := f.value[v]
+	if f.typ[val.typeID()] == types.Void {
+		fmt.Fprintf(w, "\t%s%s\n", val.op(), ostr)
+		return
+	}
+
+	fmt.Fprintf(w, "\t%s = %s%s\n", v.string(f), f.Op(v), ostr)
 }
