@@ -1,13 +1,13 @@
 package compile
 
 import (
-	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/codegen"
 	"github.com/rj45/gosling/parser"
 	"github.com/rj45/gosling/semantics"
+	"github.com/rj45/gosling/token"
 )
 
-func Compile(file *ast.File, asm codegen.Assembly) []error {
+func Compile(file *token.File, asm codegen.Assembly) []error {
 	parser := parser.New(file)
 	ast, errs := parser.Parse()
 	if errs != nil {

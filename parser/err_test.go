@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/parser"
+	"github.com/rj45/gosling/token"
 )
 
 func TestExprParseError(t *testing.T) {
@@ -20,7 +20,7 @@ func TestExprParseError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New(ast.NewFile("test.gos", []byte(tt.src)))
+		parser := parser.New(token.NewFile("test.gos", []byte(tt.src)))
 		a, errs := parser.Parse()
 
 		if errs == nil {
@@ -45,7 +45,7 @@ func TestStmtParseError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New(ast.NewFile("test.gos", []byte(tt.src)))
+		parser := parser.New(token.NewFile("test.gos", []byte(tt.src)))
 		a, errs := parser.Parse()
 
 		if errs == nil {
@@ -74,7 +74,7 @@ func TestDeclParseError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		parser := parser.New(ast.NewFile("test.gos", []byte(tt.src)))
+		parser := parser.New(token.NewFile("test.gos", []byte(tt.src)))
 		a, errs := parser.Parse()
 
 		if errs == nil {

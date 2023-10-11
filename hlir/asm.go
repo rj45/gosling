@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/rj45/gosling/ir"
+	"github.com/rj45/gosling/token"
 	"github.com/rj45/gosling/types"
 )
 
@@ -30,7 +31,7 @@ type Assembler struct {
 	refs   map[string][]ref
 }
 
-func NewAssembler(file *ir.File) *Assembler {
+func NewAssembler(file *token.File) *Assembler {
 	return &Assembler{
 		Program: ir.NewProgram(file),
 	}

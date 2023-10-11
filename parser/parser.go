@@ -14,7 +14,7 @@ type Parser struct {
 	errs []error
 }
 
-func New(file *ast.File) *Parser {
+func New(file *token.File) *Parser {
 	return &Parser{ast: ast.New(file)}
 }
 

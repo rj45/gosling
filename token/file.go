@@ -1,6 +1,4 @@
-package ir
-
-import "github.com/rj45/gosling/token"
+package token
 
 // File is a source file.
 type File struct {
@@ -14,17 +12,17 @@ func NewFile(filename string, src []byte) *File {
 }
 
 // TokenBytes returns a cheap byte slice of the token text
-func (f *File) TokenBytes(t token.Token) []byte {
+func (f *File) TokenBytes(t Token) []byte {
 	return f.Src[t.Offset():t.EndOfToken(f.Src)]
 }
 
 // TokenString allocates a new string copy of the token text
-func (f *File) TokenString(t token.Token) string {
+func (f *File) TokenString(t Token) string {
 	return string(f.TokenBytes(t))
 }
 
 // PositionOf returns the line and column of the given token
-func (f *File) PositionOf(tok token.Token) (line int, col int) {
+func (f *File) PositionOf(tok Token) (line int, col int) {
 	offset := tok.Offset()
 	var lineoffset int
 	for i, ch := range f.Src {

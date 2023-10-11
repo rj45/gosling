@@ -4,10 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/compile"
 	"github.com/rj45/gosling/hlir"
-	"github.com/rj45/gosling/ir"
+	"github.com/rj45/gosling/token"
 )
 
 var tests = []struct {
@@ -23,7 +22,7 @@ var tests = []struct {
 			}
 		`,
 		ir: `
-			func main {
+			func main() int {
 			main.entry0:
 				Prologue 0
 				r0 = LoadInt 42
@@ -43,7 +42,7 @@ var tests = []struct {
 			}
 		`,
 		ir: `
-			func main {
+			func main() int {
 			main.entry0:
 				Prologue 1
 				r0 = LocalAddr 0
@@ -67,7 +66,7 @@ var tests = []struct {
 			}
 		`,
 		ir: `
-			func main {
+			func main(r0 int) int {
 			main.entry0:
 				Prologue 1
 				StoreLocal r0, 0
@@ -87,7 +86,7 @@ var tests = []struct {
 			}
 		`,
 		ir: `
-			func main {
+			func main() int {
 			main.entry0:
 				Prologue 0
 				r0 = LoadInt 1
@@ -122,7 +121,7 @@ var tests = []struct {
 			}
 		`,
 		ir: `
-			func main {
+			func main() int {
 			main.entry0:
 				Prologue 0
 				r0 = LoadInt 42
@@ -151,7 +150,7 @@ var tests = []struct {
 			}
 		`,
 		ir: `
-			func main {
+			func main() int {
             main.entry0:
             	Prologue 6
             	r0 = LocalAddr 0
@@ -236,7 +235,7 @@ var tests = []struct {
 			}
 		`,
 		ir: `
-			func foo {
+			func foo() {
 			foo.entry0:
 				Prologue 0
 				Jump foo.epilogue0
@@ -245,7 +244,7 @@ var tests = []struct {
 				Return
 			}
 
-			func main {
+			func main() int {
 			main.entry0:
 				Prologue 0
 				Call foo
@@ -264,8 +263,9 @@ func TestAssembler(t *testing.T) {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			asm := hlir.NewAssembler(ir.NewFile("test.gos", []byte(test.src)))
-			compile.Compile(ast.NewFile("test.gos", []byte(test.src)), asm)
+			file := token.NewFile("test.gos", []byte(test.src))
+			asm := hlir.NewAssembler(file)
+			compile.Compile(file, asm)
 			actual := asm.Program.Dump()
 
 			if trim(actual) != trim(test.ir) {

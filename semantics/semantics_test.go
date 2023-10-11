@@ -6,13 +6,14 @@ import (
 	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/parser"
 	"github.com/rj45/gosling/semantics"
+	"github.com/rj45/gosling/token"
 	"github.com/rj45/gosling/types"
 )
 
 func parse(t *testing.T, src string) (*ast.AST, *types.Universe, ast.NodeID, []error) {
 	t.Helper()
 
-	parser := parser.New(ast.NewFile("test.gos", []byte(src)))
+	parser := parser.New(token.NewFile("test.gos", []byte(src)))
 	a, errs := parser.Parse()
 	if len(errs) > 0 {
 		return nil, nil, ast.InvalidNode, errs

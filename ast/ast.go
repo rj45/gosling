@@ -28,7 +28,7 @@ const InvalidNode NodeID = 0
 // to identify child indices with a constant so the code is more
 // readable.
 type AST struct {
-	File
+	*token.File
 
 	// node is the list of nodes in post-order traversal order
 	node []node
@@ -42,9 +42,9 @@ type AST struct {
 }
 
 // New creates a new AST from the source code
-func New(file *File) *AST {
+func New(file *token.File) *AST {
 	return &AST{
-		File: *file,
+		File: file,
 		node: []node{
 			// the first node is always an illegal node
 			newNode(IllegalNode, 0, 0),

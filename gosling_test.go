@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/rj45/gosling/arch/aarch64"
-	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/compile"
+	"github.com/rj45/gosling/token"
 	"github.com/rj45/gosling/vm"
 )
 
@@ -333,7 +333,7 @@ func TestCodegenWithVirtualMachine(t *testing.T) {
 			if strings.Contains(tt.input, "main()") {
 				input = tt.input
 			}
-			file := ast.NewFile("test.gos", []byte(input))
+			file := token.NewFile("test.gos", []byte(input))
 			asm := vm.NewAsm()
 			errs := compile.Compile(file, asm)
 
@@ -362,7 +362,7 @@ func TestCodegenNativeAssembly(t *testing.T) {
 			if strings.Contains(tt.input, "main()") {
 				input = tt.input
 			}
-			file := ast.NewFile("test.gos", []byte(input))
+			file := token.NewFile("test.gos", []byte(input))
 
 			tmp, err := os.CreateTemp("", "gosling_*.s")
 			if err != nil {

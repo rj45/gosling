@@ -15,7 +15,7 @@ type Func struct {
 	// The file the func is in, which is also a reference
 	// to the source code of the file, which all tokens
 	// reference.
-	*File
+	*token.File
 
 	// The program the function is in.
 	*Program
@@ -55,7 +55,7 @@ type Func struct {
 }
 
 // NewFunc creates a new Func.
-func NewFunc(file *File) *Func {
+func NewFunc(file *token.File) *Func {
 	if file == nil {
 		panic("file cannot be nil")
 	}
@@ -285,8 +285,16 @@ func (fn *Func) Dump() string {
 }
 
 func (fn *Func) dump(w io.Writer) {
-	// todo: emit signature
-	fmt.Fprintln(w, "func", fn.Name, "{")
+	sig := fn.Types().Func(fn.Sig)
+	params := make([]string, len(sig.ParamTypes()))
+	for i, typ := range sig.ParamTypes() {
+		params[i] = fmt.Sprintf("%s %s", RegID(i).String(), fn.Types().StringOf(typ))
+	}
+	pstr := "(" + strings.Join(params, ", ") + ")"
+	if sig.ReturnType() != types.Void {
+		pstr += " " + fn.Types().StringOf(sig.ReturnType())
+	}
+	fmt.Fprintln(w, "func", fn.Name+pstr, "{")
 	for _, block := range fn.block {
 		block.dump(w)
 	}

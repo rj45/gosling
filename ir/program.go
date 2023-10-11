@@ -4,24 +4,26 @@ import (
 	"io"
 	"strings"
 
+	"github.com/rj45/gosling/token"
 	"github.com/rj45/gosling/types"
 )
 
 // Program represents a Go program, and is the root of the IR.
 type Program struct {
-	*File
+	*token.File
 	fn    []*Func
 	types *types.Universe
 }
 
 // NewProgram creates a new Program.
-func NewProgram(file *File) *Program {
+func NewProgram(file *token.File) *Program {
 	return &Program{File: file, types: types.NewUniverse()}
 }
 
 // NewFunc creates a new function in the program.
 func (p *Program) NewFunc() *Func {
 	fn := NewFunc(p.File)
+	fn.Program = p
 	p.fn = append(p.fn, fn)
 	return fn
 }
