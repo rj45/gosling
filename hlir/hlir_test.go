@@ -264,7 +264,7 @@ func TestAssembler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			file := token.NewFile("test.gos", []byte(test.src))
-			asm := hlir.NewAssembler(file)
+			asm := hlir.NewBuilder(file)
 			compile.Compile(file, asm)
 			actual := asm.Program.Dump()
 

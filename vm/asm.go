@@ -33,9 +33,7 @@ func (a *Asm) instr1(op Opcode, arg int) {
 func (a *Asm) Types(*types.Universe) {
 }
 
-func (a *Asm) DeclareFunction(fnname string, sig types.Type) {
-	_ = fnname
-	_ = sig
+func (a *Asm) DeclareFunction(string, types.Type) {
 }
 
 func (a *Asm) Prologue(name string, locals int) {
