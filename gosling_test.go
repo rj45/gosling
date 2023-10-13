@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -370,7 +371,7 @@ func TestCodegenNativeAssembly(t *testing.T) {
 			}
 			defer os.Remove(tmp.Name())
 
-			asm := &aarch64.Assembly{Out: tmp}
+			asm := &aarch64.Assembler{Out: tmp}
 
 			errs := compile.Compile(file, asm)
 			if len(errs) > 0 {
@@ -384,6 +385,11 @@ func TestCodegenNativeAssembly(t *testing.T) {
 			err = cmd.Run()
 			defer os.Remove(tmp.Name() + ".out")
 			if err != nil {
+				buf, err := os.ReadFile(tmp.Name())
+				if err != nil {
+					t.Fatal(err)
+				}
+				fmt.Println(string(buf))
 				t.Errorf("Expected no error, but got %s", err)
 			}
 

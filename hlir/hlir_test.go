@@ -4,8 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rj45/gosling/compile"
+	"github.com/rj45/gosling/codegen"
 	"github.com/rj45/gosling/hlir"
+	"github.com/rj45/gosling/parser"
+	"github.com/rj45/gosling/semantics"
 	"github.com/rj45/gosling/token"
 )
 
@@ -216,6 +218,8 @@ var tests = []struct {
 			then0:
 				r0 = LoadInt 1
 				Jump main.epilogue0
+			post.return2:
+				Jump endif0
             endif0:
             	r0 = LoadInt 0
             	Jump main.epilogue0
@@ -256,6 +260,29 @@ var tests = []struct {
 			}
 		`,
 	},
+	{
+		name: "function with multiple returns",
+		src: `
+			func main() int {
+				{return 1}
+				return 2
+			}
+		`,
+		ir: `
+			func main() int {
+			main.entry0:
+				Prologue 0
+				r0 = LoadInt 1
+				Jump main.epilogue0
+			post.return1:
+				r0 = LoadInt 2
+            	Jump main.epilogue0
+            main.epilogue0:
+            	Epilogue
+            	Return r0
+			}
+		`,
+	},
 }
 
 func TestAssembler(t *testing.T) {
@@ -264,8 +291,25 @@ func TestAssembler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			file := token.NewFile("test.gos", []byte(test.src))
+
+			parser := parser.New(file)
+			ast, errs := parser.Parse()
+			for _, err := range errs {
+				t.Error(err)
+			}
+
+			tc := semantics.NewTypeChecker(ast)
+
+			symtab, errs := tc.Check(ast.Root())
+			for _, err := range errs {
+				t.Error(err)
+			}
+
 			asm := hlir.NewBuilder(file)
-			compile.Compile(file, asm)
+
+			gen := codegen.New(ast, symtab, tc.Universe(), asm)
+			gen.Generate()
+
 			actual := asm.Program.Dump()
 
 			if trim(actual) != trim(test.ir) {

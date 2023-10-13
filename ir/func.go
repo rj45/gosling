@@ -260,6 +260,11 @@ func (fn *Func) ValueForConst(c Constant) ValueID {
 	return id
 }
 
+// ConstForValue returns the constant for the given value.
+func (fn *Func) ConstForValue(id ValueID) Constant {
+	return fn.valueConstant[id]
+}
+
 // Regs returns the registers for the given value.
 func (fn *Func) Regs(id ValueID) RegMask {
 	return fn.regs[id]

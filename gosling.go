@@ -12,7 +12,7 @@ import (
 func main() {
 	src := []byte(os.Args[1])
 	file := token.NewFile("test.gos", src)
-	asm := &aarch64.Assembly{Out: os.Stdout}
+	asm := &aarch64.Assembler{Out: os.Stdout}
 	errs := compile.Compile(file, asm)
 	if len(errs) > 0 {
 		for _, err := range errs {

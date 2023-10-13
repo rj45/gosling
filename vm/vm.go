@@ -28,6 +28,10 @@ func (c *CPU) Run() int {
 	c.stack = make([]int, 0, 100)
 	c.pc = 0
 
+	if c.Trace {
+		fmt.Println("prog len:", len(c.program))
+	}
+
 	for {
 		instr := c.program[c.pc]
 		c.pc++

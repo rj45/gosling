@@ -21,11 +21,11 @@ func (g *CodeGen) genIfExpr(node ast.NodeID) {
 		g.asm.JumpIfFalse("endif", label)
 	}
 	g.asm.Label("then", label)
-	g.genStmt(then)
+	g.genStmt(then, false)
 	g.asm.Jump("endif", label)
 	if els != ast.InvalidNode {
 		g.asm.Label("else", label)
-		g.genStmt(els)
+		g.genStmt(els, false)
 	}
 	g.asm.Label("endif", label)
 }
@@ -81,7 +81,7 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 	case ast.IfExpr:
 		g.genIfExpr(node)
 	case ast.StmtList:
-		g.genStmtList(node)
+		g.genStmtList(node, false)
 	case ast.Literal:
 		g.asm.LoadInt(g.ast.NodeString(node))
 	case ast.Name:

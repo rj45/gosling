@@ -66,7 +66,7 @@ func (g *CodeGen) genFuncDecl(node ast.NodeID) {
 
 	body := g.ast.Child(node, ast.FuncDeclBody)
 
-	g.genStmtList(body)
+	g.genStmtList(body, true)
 
 	g.asm.Epilogue()
 }
