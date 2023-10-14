@@ -83,23 +83,24 @@ func (c *CodeGen) generateBlock(blk *ir.Block) {
 	c.generateInstr(blk.Terminator())
 }
 
-func (c *CodeGen) generateInstr(instr ir.ValueID) {
+func (c *CodeGen) generateInstr(instr ir.Value) {
 	reg := [3]ir.RegMask{}
 	ri := 0
-	if c.fn.Regs(instr) != 0 {
-		reg[0] = c.fn.Regs(instr)
+	if instr.HasRegister() {
+		reg[0] = instr.Regs()
 		ri = 1
 	}
-	for i := 0; i < c.fn.NumOperands(instr); i++ {
-		if c.fn.Regs(c.fn.Operand(instr, i)) != 0 {
-			reg[ri] = c.fn.Regs(c.fn.Operand(instr, i))
+	for i := 0; i < instr.NumOperands(); i++ {
+		regs := instr.Operand(i).Regs()
+		if regs != 0 {
+			reg[ri] = regs
 			ri++
 		}
 	}
 
-	switch c.fn.Op(instr) {
+	switch instr.Op() {
 	case Prologue:
-		v := c.fn.ConstForValue(c.fn.Operand(instr, 0))
+		v := instr.Operand(0).Constant()
 		c.asm.Prologue(c.fn.Name, int(v.Value().(int64)))
 	case Epilogue:
 		c.asm.Epilogue()
@@ -108,26 +109,20 @@ func (c *CodeGen) generateInstr(instr ir.ValueID) {
 	case Pop:
 		c.asm.Pop(reg[0])
 	case LoadLocal:
-		v := c.fn.ConstForValue(c.fn.Operand(instr, 0))
+		v := instr.Operand(0).Constant()
 		c.asm.LoadLocal(reg[0], int(v.Value().(int64)))
 	case StoreLocal:
-		rc := c.fn.ConstForValue(c.fn.Operand(instr, 0))
-		reg, ok := ir.RegValue(rc)
-		if !ok {
-			panic("not a reg: " + rc.String())
-		}
-
-		v := c.fn.ConstForValue(c.fn.Operand(instr, 1))
-		c.asm.StoreLocal(reg, int(v.Value().(int64)))
+		v := instr.Operand(1).Constant()
+		c.asm.StoreLocal(reg[0], int(v.Value().(int64)))
 	case Load:
 		c.asm.Load(reg[0], reg[1])
 	case Store:
 		c.asm.Store(reg[0], reg[1])
 	case LocalAddr:
-		v := c.fn.ConstForValue(c.fn.Operand(instr, 0))
+		v := instr.Operand(0).Constant()
 		c.asm.LocalAddr(reg[0], int(v.Value().(int64)))
 	case LoadInt:
-		v := c.fn.ConstForValue(c.fn.Operand(instr, 0))
+		v := instr.Operand(0).Constant()
 		c.asm.LoadInt(reg[0], v.Value().(int64))
 	case Add:
 		c.asm.Add(reg[0], reg[1], reg[2])
@@ -152,19 +147,19 @@ func (c *CodeGen) generateInstr(instr ir.ValueID) {
 	case Ge:
 		c.asm.Ge(reg[0], reg[1], reg[2])
 	case Call:
-		cfn := c.fn.ConstForValue(c.fn.Operand(instr, 0))
+		cfn := instr.Operand(0).Constant()
 		c.asm.Call(cfn.String())
 	case Jump:
-		b := c.fn.Block(c.fn.Operand(instr, 0))
+		b := instr.Operand(0).Block()
 		dest := b.Name
 		c.asm.Jump(dest)
 	case If:
-		then := c.fn.Block(c.fn.Operand(instr, 1)).Name
-		els := c.fn.Block(c.fn.Operand(instr, 2)).Name
+		then := instr.Operand(1).Block().Name
+		els := instr.Operand(2).Block().Name
 		c.asm.If(reg[0], then, els)
 	case Return:
 		c.asm.Return()
 	default:
-		panic("unknown op: " + c.fn.Op(instr).String())
+		panic("unknown op: " + instr.Op().String())
 	}
 }

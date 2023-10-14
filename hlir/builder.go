@@ -9,8 +9,8 @@ import (
 )
 
 type ref struct {
-	instr ir.ValueID // the instruction to fixup
-	oper  int        // the operand to fixup
+	instr ir.Value // the instruction to fixup
+	oper  int      // the operand to fixup
 }
 
 type Builder struct {
@@ -24,10 +24,10 @@ type Builder struct {
 	// This is set by the Label operator.
 	Block *ir.Block
 
-	a ir.ValueID
-	b ir.ValueID
+	a ir.Value
+	b ir.Value
 
-	labels map[string]ir.ValueID
+	labels map[string]ir.Value
 	refs   map[string][]ref
 }
 
@@ -58,8 +58,8 @@ func (b *Builder) Prologue(name string, numLocals int) {
 
 	b.Block.AddValue(Prologue, 0, types.Void, b.Func.ValueForConst(ir.IntConst(int64(numLocals))))
 
-	b.a = ir.InvalidValue
-	b.b = ir.InvalidValue
+	b.a = ir.Value{}
+	b.b = ir.Value{}
 }
 
 func (b *Builder) Epilogue() {
@@ -82,30 +82,24 @@ func (b *Builder) Push() {
 }
 
 func (b *Builder) Pop(reg int) {
-	b.b = b.Block.AddValue(Pop, 0, types.Int)
-	b.Func.AddReg(b.b, ir.RegID(reg))
+	b.b = b.Block.AddValue(Pop, 0, types.Int).AddReg(ir.RegID(reg))
 }
 
 func (b *Builder) LoadLocal(index int) {
-	b.a = b.Block.AddValue(LoadLocal, 0, types.Int, b.Func.ValueForConst(ir.IntConst(int64(index))))
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValueAny(LoadLocal, 0, types.Int, index).AddReg(ir.R0)
 }
 
 func (b *Builder) StoreLocal(index int) {
-	reg := b.Func.ValueForConst(ir.RegConst(ir.NewRegMask(ir.RegID(index))))
-	c := b.Func.ValueForConst(ir.IntConst(int64(index)))
-	b.Block.AddValue(StoreLocal, 0, types.Void, reg, c)
+	b.Block.AddValueAny(StoreLocal, 0, types.Void, ir.RegID(index), index)
 }
 
 func (b *Builder) LoadInt(value string) {
 	ival, _ := strconv.ParseInt(value, 10, 64)
-	b.a = b.Block.AddValue(LoadInt, 0, types.Int, b.Func.ValueForConst(ir.IntConst(ival)))
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValueAny(LoadInt, 0, types.Int, ival).AddReg(ir.R0)
 }
 
 func (b *Builder) Load() {
-	b.a = b.Block.AddValue(Load, 0, types.Int, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Load, 0, types.Int, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Store() {
@@ -113,84 +107,71 @@ func (b *Builder) Store() {
 }
 
 func (b *Builder) LocalAddr(index int) {
-	b.a = b.Block.AddValue(LocalAddr, 0, types.Int, b.Func.ValueForConst(ir.IntConst(int64(index))))
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValueAny(LocalAddr, 0, types.Int, index).AddReg(ir.R0)
 }
 
 func (b *Builder) Add() {
-	b.a = b.Block.AddValue(Add, 0, types.Int, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Add, 0, types.Int, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Sub() {
-	b.a = b.Block.AddValue(Sub, 0, types.Int, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Sub, 0, types.Int, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Mul() {
-	b.a = b.Block.AddValue(Mul, 0, types.Int, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Mul, 0, types.Int, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Div() {
-	b.a = b.Block.AddValue(Div, 0, types.Int, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Div, 0, types.Int, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Neg() {
-	b.a = b.Block.AddValue(Neg, 0, types.Int, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Neg, 0, types.Int, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Eq() {
-	b.a = b.Block.AddValue(Eq, 0, types.Bool, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Eq, 0, types.Bool, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Ne() {
-	b.a = b.Block.AddValue(Ne, 0, types.Bool, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Ne, 0, types.Bool, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Lt() {
-	b.a = b.Block.AddValue(Lt, 0, types.Bool, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Lt, 0, types.Bool, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Gt() {
-	b.a = b.Block.AddValue(Gt, 0, types.Bool, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Gt, 0, types.Bool, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Le() {
-	b.a = b.Block.AddValue(Le, 0, types.Bool, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Le, 0, types.Bool, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Ge() {
-	b.a = b.Block.AddValue(Ge, 0, types.Bool, b.b, b.a)
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValue(Ge, 0, types.Bool, b.b, b.a).AddReg(ir.R0)
 }
 
 func (b *Builder) Call(fnname string) {
 	fn := b.Program.FuncNamed(fnname)
 	rettype := b.Program.Types().Func(fn.Sig).ReturnType()
-	b.a = b.Block.AddValue(Call, 0, rettype, b.Func.ValueForConst(ir.FuncConst(fn)))
-	b.Func.AddReg(b.a, ir.R0)
+	b.a = b.Block.AddValueAny(Call, 0, rettype, fn).AddReg(ir.R0)
 }
 
 func (b *Builder) Jump(label string, id int) {
 	b.jump(Jump, label, id)
 }
 
-func (b *Builder) jump(op Op, label string, id int, ops ...ir.ValueID) {
+func (b *Builder) jump(op Op, label string, id int, ops ...ir.Value) {
 	name := label + strconv.Itoa(id)
 	if bid, found := b.labels[name]; found {
 		b.Block.UpdateTerminator(op, append(ops, bid)...)
 		return
 	}
 
-	b.Block.UpdateTerminator(op, append(ops, ir.InvalidValue)...)
+	b.Block.UpdateTerminator(op, append(ops, ir.Value{})...)
 
 	if b.refs == nil {
 		b.refs = make(map[string][]ref)
@@ -199,7 +180,7 @@ func (b *Builder) jump(op Op, label string, id int, ops ...ir.ValueID) {
 }
 
 func (b *Builder) JumpIfFalse(label string, id int) {
-	b.jump(If, label, id, b.a, ir.InvalidValue)
+	b.jump(If, label, id, b.a, ir.Value{})
 }
 
 func (b *Builder) JumpToEpilogue() {
@@ -208,36 +189,34 @@ func (b *Builder) JumpToEpilogue() {
 
 func (b *Builder) Label(label string, id int) {
 	name := label + strconv.Itoa(id)
-	bid := b.Func.NewBlock(name, Jump, 0, ir.InvalidValue)
+	bid := b.Func.NewBlock(name, Jump, 0, ir.Value{})
 
 	if b.Block != nil {
 		term := b.Block.Terminator()
-		if b.Func.Op(term) == If {
-			ops := b.Func.Operands(term)
+		if term.Op() == If {
+			ops := term.Operands()
 			ops[1] = bid
-			b.Func.SetOperands(term, ops...)
+			term.SetOperands(ops...)
 		} else {
-			lastOper := b.Func.NumOperands(term) - 1
-			if b.Func.Operand(term, lastOper) == ir.InvalidValue {
-				ops := b.Func.Operands(b.Block.Terminator())
-				ops[lastOper] = bid
-				b.Func.SetOperands(b.Block.Terminator(), ops...)
+			lastOper := term.NumOperands() - 1
+			if term.Operand(lastOper).IsNil() {
+				term.SetOperand(lastOper, bid)
 			}
 		}
 	}
 
-	b.Block = b.Func.Block(bid)
+	b.Block = bid.Block()
 
 	// fixup any references to this label
 	if refs, found := b.refs[name]; found {
 		for _, ref := range refs {
-			b.Func.SetOperand(ref.instr, ref.oper, bid)
+			ref.instr.SetOperand(ref.oper, bid)
 		}
 		delete(b.refs, name)
 	}
 
 	if b.labels == nil {
-		b.labels = make(map[string]ir.ValueID)
+		b.labels = make(map[string]ir.Value)
 	}
 
 	// record the label for future references

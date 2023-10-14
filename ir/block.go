@@ -43,7 +43,7 @@ type Block struct {
 }
 
 // NewBlock creates a new block in the function.
-func (fn *Func) NewBlock(name string, op Op, token token.Token, args ...ValueID) ValueID {
+func (fn *Func) NewBlock(name string, op Op, token token.Token, args ...Value) Value {
 	id := blockID(len(fn.block))
 	if fn.blockForValue == nil {
 		fn.blockForValue = make(map[ValueID]blockID)
@@ -52,12 +52,12 @@ func (fn *Func) NewBlock(name string, op Op, token token.Token, args ...ValueID)
 	fn.block = append(fn.block, Block{
 		Func:       fn,
 		Name:       name,
-		terminator: terminator,
+		terminator: terminator.id(),
 	})
 	block := &fn.block[id]
-	fn.blockForValue[terminator] = id
+	fn.blockForValue[terminator.id()] = id
 
-	return block.ValueID()
+	return fn.valueForID(block.ValueID())
 }
 
 // NumBlocks returns the number of blocks in the function.
@@ -83,23 +83,50 @@ func (b *Block) NumValues() int {
 // ValueAt returns the value at the given index.
 // Note: this can return an InvalidValue if the value
 // has been deleted.
-func (b *Block) ValueAt(index int) ValueID {
-	return b.value[index]
+func (b *Block) ValueAt(index int) Value {
+	return b.Func.valueForID(b.value[index])
+}
+
+func (b *Block) blockID() blockID {
+	// todo: optimize this... in some cases it may be faster to search in b.Func.block
+	return b.Func.blockForValue[b.ValueID()]
 }
 
 // AddValue adds a new value to the block.
-func (b *Block) AddValue(op Op, token token.Token, typ types.Type, args ...ValueID) ValueID {
-	// todo: optimize this... in some cases it may be faster to search in b.Func.block
-	blockID := b.Func.blockForValue[b.ValueID()]
+func (b *Block) AddValue(op Op, token token.Token, typ types.Type, args ...Value) Value {
+	blockID := b.blockID()
 
-	id := b.Func.addValue(op, blockID, b.Func.lookupType(typ), token, args...)
-	b.value = append(b.value, id)
-	return id
+	val := b.Func.addValue(op, blockID, b.Func.lookupType(typ), token, args...)
+	b.value = append(b.value, val.id())
+	return val
 }
 
-// AppendValue appends a new value to the block.
-func (b *Block) AppendValue(id ValueID) {
+// AddValueAny adds a new value to the Block, with any type of operand.
+func (b *Block) AddValueAny(op Op, token token.Token, typ types.Type, operands ...any) Value {
+	blockID := b.blockID()
+
+	values := make([]Value, len(operands))
+	for i, oper := range operands {
+		values[i] = b.Func.valueForAny(oper)
+	}
+
+	val := b.Func.addValue(op, blockID, b.Func.lookupType(typ), token, values...)
+	b.value = append(b.value, val.id())
+	return val
+}
+
+func (b *Block) appendValue(id ValueID) {
 	b.value = append(b.value, id)
+}
+
+// removeValue removes the value from the block.
+func (b *Block) removeValue(id ValueID) {
+	for i, v := range b.value {
+		if v == id {
+			b.value[i] = InvalidValue
+			return
+		}
+	}
 }
 
 // ValueID returns the ValueID of the block. This is
@@ -110,13 +137,12 @@ func (b *Block) ValueID() ValueID {
 }
 
 // Terminator returns the terminator of the block.
-func (b *Block) Terminator() ValueID {
-	return b.terminator
+func (b *Block) Terminator() Value {
+	return b.Func.valueForID(b.terminator)
 }
 
-func (b *Block) UpdateTerminator(Op Op, args ...ValueID) {
-	b.Func.SetValueOp(b.terminator, Op)
-	b.Func.SetOperands(b.terminator, args...)
+func (b *Block) UpdateTerminator(Op Op, args ...Value) {
+	b.Func.Value(b.terminator).SetOp(Op).SetOperands(args...)
 }
 
 func (b *Block) Dump() string {
@@ -128,10 +154,13 @@ func (b *Block) Dump() string {
 func (b *Block) dump(w io.Writer) {
 	fmt.Fprintln(w, b.Name+":")
 	for _, v := range b.value {
-		v.dump(w, b.Func)
+		if v == InvalidValue {
+			continue
+		}
+		b.Func.Value(v).dump(w)
 	}
 
 	if b.terminator != InvalidValue {
-		b.terminator.dump(w, b.Func)
+		b.Func.Value(b.terminator).dump(w)
 	}
 }

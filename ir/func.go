@@ -3,7 +3,6 @@ package ir
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/rj45/gosling/token"
@@ -77,22 +76,6 @@ func NewFunc(file *token.File) *Func {
 	}
 }
 
-// Token returns the token for the given node.
-func (fn *Func) Token(id ValueID) token.Token {
-	return fn.token[id]
-}
-
-// OpID returns the ID of the Op for the given value.
-func (fn *Func) OpID(id ValueID) OpID {
-	return fn.value[id].opID()
-}
-
-// Returns the Op for the given value.
-// This has been optimized to not allocate a new Op.
-func (fn *Func) Op(id ValueID) Op {
-	return fn.value[id].op()
-}
-
 // BlockFor returns the block of the given value.
 func (fn *Func) BlockFor(id ValueID) ValueID {
 	return fn.block[fn.value[id].block()].ValueID()
@@ -103,103 +86,81 @@ func (fn *Func) NumValues() int {
 	return len(fn.value)
 }
 
-// Type returns the type of the given node
-func (fn *Func) Type(id ValueID) types.Type {
-	if id >= ValueID(len(fn.typ)) {
-		return types.None
-	}
-	return fn.typ[id]
+// Value returns the Value for the given id.
+func (fn *Func) Value(id ValueID) Value {
+	return fn.valueForID(id)
 }
 
-// SetType sets the type of the given node
-func (fn *Func) SetType(id ValueID, typ types.Type) {
-	for id >= ValueID(len(fn.typ)) {
-		fn.typ = append(fn.typ, types.None)
-	}
-	fn.typ[id] = typ
-}
-
-// NumOperands returns the number of operands for the given value
-func (fn *Func) NumOperands(id ValueID) int {
-	return fn.value[id].numOperands()
-}
-
-// Operand returns the nth operand of the given node
-func (fn *Func) Operand(id ValueID, index int) ValueID {
-	n := fn.value[id]
-	if index < 0 || index >= n.numOperands() {
-		panic("invalid index")
-	}
-	return fn.operand[n.firstOperand()+index]
-}
-
-// Operands returns the operands of a node
-func (fn *Func) Operands(id ValueID) []ValueID {
-	n := fn.value[id]
-
-	start := n.firstOperand()
-	end := n.numOperands() + start
-	return fn.operand[start:end]
-}
-
-// SetOperand sets the nth operand of the given node
-func (fn *Func) SetOperand(id ValueID, index int, operand ValueID) {
-	n := fn.value[id]
-
-	if index < 0 || index >= n.numOperands() {
-		panic("invalid index")
-	}
-	fn.operand[n.firstOperand()+index] = operand
-}
-
-// SetOperands sets the operands of a node.
-func (fn *Func) SetOperands(id ValueID, operands ...ValueID) {
-	n := fn.value[id]
-
-	if len(operands) <= n.numOperands() {
-		// zero out excess operands
-		for i := len(operands); i < n.numOperands(); i++ {
-			fn.operand[n.firstOperand()+i] = InvalidValue
-			// todo: add to free list
-		}
-
-		copy(fn.operand[n.firstOperand():], operands)
-		fn.value[id] = newValue(n.opID(), n.typeID(), n.block(), len(operands), n.firstOperand())
-		return
-	}
-
-	// todo: find a chunk of free operands on the free list
-
-	firstOperand := len(fn.operand)
-	fn.operand = append(fn.operand, operands...)
-
-	// zero out the former operands
-	// important: do this after appending to fn.operand or
-	// the passed in operands could be zeroed out
-	for i := 0; i < n.numOperands(); i++ {
-		fn.operand[n.firstOperand()+i] = InvalidValue
-		// todo: add to free list
-	}
-
-	fn.value[id] = newValue(n.opID(), n.typeID(), n.block(), len(operands), firstOperand)
+func (fn *Func) valueForID(id ValueID) Value {
+	val := fn.value[id]
+	val &^= value(0xfffff) << 44
+	val = val | value(id)<<44
+	v := Value{value: val, fn: fn}
+	return v
 }
 
 // AddValue adds a new value to the Func without a block.
-func (fn *Func) AddValue(op Op, token token.Token, typ types.Type, operands ...ValueID) ValueID {
+func (fn *Func) AddValue(op Op, token token.Token, typ types.Type, operands ...Value) Value {
 	return fn.addValue(op, 0, fn.lookupType(typ), token, operands...)
 }
 
-func (fn *Func) addValue(op Op, block blockID, typ typeID, token token.Token, operands ...ValueID) ValueID {
+// AddValueAny adds a new value to the Func without a block, with any type of operand.
+func (fn *Func) AddValueAny(op Op, token token.Token, typ types.Type, operands ...any) Value {
+	values := make([]Value, len(operands))
+	for i, oper := range operands {
+		values[i] = fn.valueForAny(oper)
+	}
+	return fn.addValue(op, 0, fn.lookupType(typ), token, values...)
+}
+
+func (fn *Func) addValue(op Op, block blockID, typ typeID, token token.Token, operands ...Value) Value {
 	id := ValueID(len(fn.value))
 
 	firstOperand := len(fn.operand)
-	fn.operand = append(fn.operand, operands...)
+	for i, oper := range operands {
+		fn.operand = append(fn.operand, oper.id())
+		if fn.operand[firstOperand+i] != oper.id() {
+			panic("invalid operand")
+		}
+	}
 
 	fn.value = append(fn.value, newValue(op.OpID(), typ, block, len(operands), firstOperand))
 	fn.token = append(fn.token, token)
 	fn.regs = append(fn.regs, 0)
 
-	return id
+	return fn.valueForID(id)
+}
+
+func (fn *Func) valueForAny(v any) Value {
+	switch v := v.(type) {
+	case ValueID:
+		return fn.valueForID(v)
+	case Value:
+		return v
+	case Constant:
+		return fn.ValueForConst(v)
+	case RegID:
+		c := RegConst(NewRegMask(v))
+		return fn.ValueForConst(c)
+	case RegMask:
+		c := RegConst(v)
+		return fn.ValueForConst(c)
+	case int:
+		c := IntConst(int64(v))
+		return fn.ValueForConst(c)
+	case int64:
+		c := IntConst(v)
+		return fn.ValueForConst(c)
+	case *Func:
+		c := FuncConst(v)
+		return fn.ValueForConst(c)
+	case bool:
+		c := BoolConst(v)
+		return fn.ValueForConst(c)
+	case *Block:
+		return fn.valueForID(v.ValueID())
+	}
+	panic(fmt.Sprintf("invalid value: %T", v))
 }
 
 func (fn *Func) lookupType(typ types.Type) typeID {
@@ -219,70 +180,28 @@ func (fn *Func) lookupType(typ types.Type) typeID {
 	return id
 }
 
-// SetValueBlock sets the block of the given value.
-func (fn *Func) SetValueBlock(id ValueID, block ValueID) {
-	n := fn.value[id]
-	fn.value[id] = newValue(n.opID(), n.typeID(), fn.blockForValue[block], n.numOperands(), n.firstOperand())
-}
-
-// SetValueOp sets the op of the given value.
-func (fn *Func) SetValueOp(id ValueID, op Op) {
-	n := fn.value[id]
-	fn.value[id] = newValue(op.OpID(), n.typeID(), n.block(), n.numOperands(), n.firstOperand())
-}
-
 // String returns the name of the function.
 func (fn *Func) String() string {
 	return fn.Name
 }
 
-func (fn *Func) ValueBytes(id ValueID) []byte {
-	return fn.TokenBytes(fn.Token(id))
-}
-
-func (fn *Func) ValueString(id ValueID) string {
-	return fn.TokenString(fn.Token(id))
-}
-
 // ValueForConst returns the value for the given constant.
-func (fn *Func) ValueForConst(c Constant) ValueID {
+func (fn *Func) ValueForConst(c Constant) Value {
 	if id, ok := fn.constantValue[c]; ok {
-		return id
+		return fn.valueForID(id)
 	}
 	if fn.constantValue == nil {
 		fn.constantValue = map[Constant]ValueID{}
 		fn.valueConstant = map[ValueID]Constant{}
 	}
-	id := fn.AddValue(Const, 0, types.Int)
-	fn.constantValue[c] = id
-	fn.valueConstant[id] = c
+	val := fn.AddValue(Const, 0, types.Int)
+	fn.constantValue[c] = val.id()
+	fn.valueConstant[val.id()] = c
 
-	return id
+	return val
 }
 
-// ConstForValue returns the constant for the given value.
-func (fn *Func) ConstForValue(id ValueID) Constant {
-	return fn.valueConstant[id]
-}
-
-// Regs returns the registers for the given value.
-func (fn *Func) Regs(id ValueID) RegMask {
-	return fn.regs[id]
-}
-
-// SetRegs sets the registers for the given value.
-func (fn *Func) SetRegs(id ValueID, regs RegMask) {
-	fn.regs[id] = regs
-}
-
-// AddReg adds a register to the given value.
-func (fn *Func) AddReg(id ValueID, reg RegID) {
-	if len(fn.regs) <= int(id) {
-		log.Panicf("expected %d to be less than %d", id, len(fn.regs))
-	}
-	fn.regs[id] |= 1 << reg
-}
-
+// Dump returns a string representation of the function.
 func (fn *Func) Dump() string {
 	w := &strings.Builder{}
 	fn.dump(w)
