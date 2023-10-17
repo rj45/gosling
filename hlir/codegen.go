@@ -150,12 +150,12 @@ func (c *CodeGen) generateInstr(instr ir.Value) {
 		cfn := instr.Operand(0).Constant()
 		c.asm.Call(cfn.String())
 	case Jump:
-		b := instr.Operand(0).Block()
+		b := instr.Block().Successor(0)
 		dest := b.Name
 		c.asm.Jump(dest)
 	case If:
-		then := instr.Operand(1).Block().Name
-		els := instr.Operand(2).Block().Name
+		then := instr.Block().Successor(0).Name
+		els := instr.Block().Successor(1).Name
 		c.asm.If(reg[0], then, els)
 	case Return:
 		c.asm.Return()

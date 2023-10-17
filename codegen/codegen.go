@@ -39,7 +39,7 @@ type Assembly interface {
 
 	Call(string)
 	JumpToEpilogue()
-	JumpIfFalse(string, int)
+	JumpIf(string, string, int)
 	Jump(string, int)
 	Label(string, int)
 

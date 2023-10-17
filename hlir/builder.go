@@ -9,8 +9,8 @@ import (
 )
 
 type ref struct {
-	instr ir.Value // the instruction to fixup
-	oper  int      // the operand to fixup
+	block ir.BlockID // the block to fixup
+	index int        // index to insert at
 }
 
 type Builder struct {
@@ -27,8 +27,11 @@ type Builder struct {
 	a ir.Value
 	b ir.Value
 
-	labels map[string]ir.Value
+	labels map[string]ir.BlockID
 	refs   map[string][]ref
+
+	// previous block to have a jump
+	pjump ir.BlockID
 }
 
 func NewBuilder(file *token.File) *Builder {
@@ -56,10 +59,12 @@ func (b *Builder) Prologue(name string, numLocals int) {
 
 	b.Label(name+".entry", 0)
 
-	b.Block.AddValue(Prologue, 0, types.Void, b.Func.ValueForConst(ir.IntConst(int64(numLocals))))
+	b.Block.AddValueAny(Prologue, 0, types.Void, numLocals)
 
 	b.a = ir.Value{}
 	b.b = ir.Value{}
+
+	b.pjump = ir.InvalidBlock
 }
 
 func (b *Builder) Epilogue() {
@@ -68,13 +73,20 @@ func (b *Builder) Epilogue() {
 	ft := b.Program.Types().Func(b.Func.Sig)
 	if ft.ReturnType() == types.Void {
 		b.Block.UpdateTerminator(Return)
-		return
+	} else {
+		b.Block.UpdateTerminator(Return, b.a)
 	}
 
-	b.Block.UpdateTerminator(Return, b.a)
+	if len(b.refs) != 0 {
+		panic("unresolved references")
+	}
 
 	b.Block = nil
 	b.Func = nil
+	b.a = ir.Value{}
+	b.b = ir.Value{}
+	b.labels = nil
+	b.refs = nil
 }
 
 func (b *Builder) Push() {
@@ -165,22 +177,27 @@ func (b *Builder) Jump(label string, id int) {
 }
 
 func (b *Builder) jump(op Op, label string, id int, ops ...ir.Value) {
+	b.pjump = b.Block.ID()
+	b.Block.UpdateTerminator(op, ops...)
+	b.insertSuccessor(0, label, id)
+}
+
+func (b *Builder) insertSuccessor(index int, label string, id int) {
 	name := label + strconv.Itoa(id)
 	if bid, found := b.labels[name]; found {
-		b.Block.UpdateTerminator(op, append(ops, bid)...)
+		b.Block.InsertSuccessor(index, b.Func.Block(bid))
 		return
 	}
-
-	b.Block.UpdateTerminator(op, append(ops, ir.Value{})...)
 
 	if b.refs == nil {
 		b.refs = make(map[string][]ref)
 	}
-	b.refs[name] = append(b.refs[name], ref{b.Block.Terminator(), len(ops)})
+	b.refs[name] = append(b.refs[name], ref{b.Block.ID(), index})
 }
 
-func (b *Builder) JumpIfFalse(label string, id int) {
-	b.jump(If, label, id, b.a, ir.Value{})
+func (b *Builder) JumpIf(then string, els string, id int) {
+	b.jump(If, then, id, b.a)
+	b.insertSuccessor(1, els, id)
 }
 
 func (b *Builder) JumpToEpilogue() {
@@ -189,36 +206,30 @@ func (b *Builder) JumpToEpilogue() {
 
 func (b *Builder) Label(label string, id int) {
 	name := label + strconv.Itoa(id)
-	bid := b.Func.NewBlock(name, Jump, 0, ir.Value{})
 
-	if b.Block != nil {
-		term := b.Block.Terminator()
-		if term.Op() == If {
-			ops := term.Operands()
-			ops[1] = bid
-			term.SetOperands(ops...)
-		} else {
-			lastOper := term.NumOperands() - 1
-			if term.Operand(lastOper).IsNil() {
-				term.SetOperand(lastOper, bid)
-			}
-		}
+	blk := b.Func.NewBlock(name, Jump, 0)
+
+	if b.Block != nil && b.pjump != b.Block.ID() {
+		// technically p.Block was invalidated by the call to NewBlock,
+		// but that's smoothed over in AddSuccessor
+		// todo: fix this?
+		b.Block.AddSuccessor(blk)
 	}
 
-	b.Block = bid.Block()
+	b.Block = blk
 
 	// fixup any references to this label
 	if refs, found := b.refs[name]; found {
 		for _, ref := range refs {
-			ref.instr.SetOperand(ref.oper, bid)
+			b.Func.Block(ref.block).InsertSuccessor(ref.index, blk)
 		}
 		delete(b.refs, name)
 	}
 
 	if b.labels == nil {
-		b.labels = make(map[string]ir.Value)
+		b.labels = make(map[string]ir.BlockID)
 	}
 
 	// record the label for future references
-	b.labels[name] = bid
+	b.labels[name] = blk.ID()
 }

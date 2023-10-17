@@ -25,7 +25,7 @@ type Value struct {
 
 // ID of the Value.
 func (v Value) ID() ValueID {
-	return ValueID(v.id())
+	return v.id()
 }
 
 // Func returns the function the value is in.
@@ -87,7 +87,7 @@ func (v Value) SetBlock(block *Block) Value {
 	if v.Block() != block && v.Block() != nil {
 		v.Block().removeValue(v.id())
 	}
-	v.fn.value[v.id()] = newValue(v.opID(), v.typeID(), block.blockID(), v.numOperands(), v.fn.value[v.id()].firstOperand())
+	v.fn.value[v.id()] = newValue(v.opID(), v.typeID(), block.ID(), v.numOperands(), v.fn.value[v.id()].firstOperand())
 	block.appendValue(v.id())
 	return v.fn.valueForID(v.id())
 }
@@ -236,27 +236,9 @@ func (v Value) AddReg(reg RegID) Value {
 	return v
 }
 
-// IsBlock returns true if the value is a block.
-func (v Value) IsBlock() bool {
-	_, found := v.fn.blockForValue[v.id()]
-	return found
-}
-
-// BlockValue returns the block value, if it's a Block.
-func (v Value) BlockValue() *Block {
-	b, found := v.fn.blockForValue[v.id()]
-	if !found {
-		panic("not a block")
-	}
-	return &v.fn.block[b]
-}
-
 // String returns the name of the value.
 func (v Value) String() string {
 	fn := v.fn
-	if b, ok := fn.blockForValue[v.id()]; ok {
-		return fn.block[b].Name
-	}
 	if v.IsConstant() {
 		return v.Constant().String()
 	}
@@ -277,6 +259,13 @@ func (v Value) dump(w io.Writer) {
 
 	for i := 0; i < v.numOperands(); i++ {
 		oper = append(oper, v.Operand(i).String())
+	}
+
+	if v.Block() != nil && v.Block().Terminator().id() == v.id() {
+		blk := v.Block()
+		for i := 0; i < blk.NumSuccessors(); i++ {
+			oper = append(oper, blk.Successor(i).Name)
+		}
 	}
 
 	ostr := ""
@@ -307,7 +296,7 @@ type value uint64
 type typeID uint16
 
 // newValue creates a new AST node or IR value
-func newValue(op OpID, typ typeID, block blockID, numOperands int, firstOperand int) value {
+func newValue(op OpID, typ typeID, block BlockID, numOperands int, firstOperand int) value {
 	if uint(op) > 0x3ff {
 		panic("op out of range")
 	}
@@ -344,8 +333,8 @@ func (n value) typeID() typeID {
 }
 
 // block of the Value
-func (n value) block() blockID {
-	return blockID(int(n>>22) & 0x3fff)
+func (n value) block() BlockID {
+	return BlockID(int(n>>22) & 0x3fff)
 }
 
 // numOperands returns the number of operands

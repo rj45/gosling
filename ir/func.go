@@ -45,9 +45,6 @@ type Func struct {
 	// The list of basic blocks in the function.
 	block []Block
 
-	// The list of blocks indexed by ValueID.
-	blockForValue map[ValueID]blockID
-
 	// The list of constants
 	constantValue map[Constant]ValueID
 	valueConstant map[ValueID]Constant
@@ -61,7 +58,7 @@ func NewFunc(file *token.File) *Func {
 	return &Func{
 		File: file,
 		value: []value{
-			// the first value is always an illegal value
+			// the first value is always an invalid value
 			newValue(0, 0, 0, 0, 0),
 		},
 		token: []token.Token{
@@ -73,22 +70,26 @@ func NewFunc(file *token.File) *Func {
 			types.None, types.Void,
 		},
 		regs: []RegMask{0},
+		block: []Block{
+			// the first block is always an invalid block
+			{},
+		},
 	}
-}
-
-// BlockFor returns the block of the given value.
-func (fn *Func) BlockFor(id ValueID) ValueID {
-	return fn.block[fn.value[id].block()].ValueID()
 }
 
 // NumValues returns the number of values in the function.
 func (fn *Func) NumValues() int {
-	return len(fn.value)
+	return len(fn.value) - 1
 }
 
 // Value returns the Value for the given id.
 func (fn *Func) Value(id ValueID) Value {
 	return fn.valueForID(id)
+}
+
+// ValueAt returns the Value at the given index.
+func (fn *Func) ValueAt(index int) Value {
+	return fn.valueForID(ValueID(index + 1))
 }
 
 func (fn *Func) valueForID(id ValueID) Value {
@@ -113,7 +114,7 @@ func (fn *Func) AddValueAny(op Op, token token.Token, typ types.Type, operands .
 	return fn.addValue(op, 0, fn.lookupType(typ), token, values...)
 }
 
-func (fn *Func) addValue(op Op, block blockID, typ typeID, token token.Token, operands ...Value) Value {
+func (fn *Func) addValue(op Op, block BlockID, typ typeID, token token.Token, operands ...Value) Value {
 	id := ValueID(len(fn.value))
 
 	firstOperand := len(fn.operand)
@@ -157,8 +158,6 @@ func (fn *Func) valueForAny(v any) Value {
 	case bool:
 		c := BoolConst(v)
 		return fn.ValueForConst(c)
-	case *Block:
-		return fn.valueForID(v.ValueID())
 	}
 	panic(fmt.Sprintf("invalid value: %T", v))
 }
@@ -220,6 +219,9 @@ func (fn *Func) dump(w io.Writer) {
 	}
 	fmt.Fprintln(w, "func", fn.Name+pstr, "{")
 	for _, block := range fn.block {
+		if block.id == InvalidBlock {
+			continue
+		}
 		block.dump(w)
 	}
 	fmt.Fprintln(w, "}")
