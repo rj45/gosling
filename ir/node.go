@@ -10,6 +10,11 @@ type NodeID uint32
 
 const InvalidNode NodeID = 0
 
+// Node is a fat pointer representing a node in the graph.
+// Nodes are either control flow or data flow or both.
+// Traditional basic blocks are represented as one or more
+// nodes. In general a node has a list of inputs, an Op,
+// a Type, and a list of Uses.
 type Node struct {
 	g  *Graph
 	id NodeID

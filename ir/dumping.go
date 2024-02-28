@@ -52,6 +52,9 @@ func (fn *Function) dump(w io.Writer) {
 func (g *Graph) dump(w io.Writer, indent string, types *types.Universe) {
 	// TODO: do a post-order traversal, and then dump in reverse order
 	for i := range g.nodes {
+		if i == 0 {
+			continue
+		}
 		g.dumpNode(w, NodeID(i), indent, types)
 	}
 }
