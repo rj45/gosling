@@ -79,6 +79,8 @@ func (t *SoNTranslator) translateFuncDecl(node ast.NodeID) {
 	t.pkg.Funcs = append(t.pkg.Funcs, Function{Package: t.pkg})
 	t.fn = &t.pkg.Funcs[len(t.pkg.Funcs)-1]
 
+	t.fn.Init()
+
 	name := t.ast.Child(node, ast.FuncDeclName)
 	params := t.ast.Child(node, ast.FuncDeclParams)
 	body := t.ast.Child(node, ast.FuncDeclBody)
@@ -93,14 +95,13 @@ func (t *SoNTranslator) translateFuncDecl(node ast.NodeID) {
 	}
 
 	t.fn.Start = t.fn.NewNodeWithIDs(OpStart, types.Void, t.ast.Token(node))
+	t.startScope(t.fn.Start)
 
 	for _, child := range t.ast.Children(body) {
 		t.translateStmt(child)
 	}
 
-	if t.fn.End == InvalidNode {
-		t.fn.End = t.scope.control
-	}
+	t.fn.End = t.endScope().control
 }
 
 func (t *SoNTranslator) translateStmtList(node ast.NodeID) {

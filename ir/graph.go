@@ -34,6 +34,21 @@ type Graph struct {
 	gvn map[uint32]NodeID
 }
 
+// Init initializes the graph to a clean state, ensuring that invalid values are reserved.
+func (g *Graph) Init() {
+	*g = Graph{
+		nodes:    []node{{}},                    // node 0 is invalid
+		types:    []types.Type{types.None},      // type 0 is invalid
+		useHeads: []inputID{invalidInput},       // use head 0 is invalid
+		tokens:   []token.Token{token.Token(0)}, // token 0 is invalid
+		inputs:   []NodeID{InvalidNode},         // input 0 is invalid
+		uses:     []use{{}},                     // use 0 is invalid
+		ops:      []Op{OpInvalid},               // op 0 is invalid
+		opNames:  []string{"invalid"},           // op 0 is invalid
+		names:    []name{{"invalid", 0}},        // node 0 is invalid
+	}
+}
+
 func (g *Graph) NumNodes() int {
 	return len(g.nodes) - 1
 }
