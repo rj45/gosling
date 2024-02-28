@@ -4,6 +4,8 @@ type TypeKind uint8
 
 const (
 	BasicType TypeKind = iota
+	ConstType
+	DeferredType
 	FuncType
 )
 

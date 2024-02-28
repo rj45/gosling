@@ -6,6 +6,7 @@ import (
 
 type Const interface {
 	IsConst() bool
+	Underlying() Type
 	String() string
 }
 

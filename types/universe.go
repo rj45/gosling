@@ -4,11 +4,33 @@ package types
 // It is used to avoid repeated allocations of basic types.
 // It also allows to compare types by their ID.
 type Universe struct {
-	funcs []Func
+	funcs     []Func
+	consts    []Const
+	deferreds []Deferred
 }
 
 func NewUniverse() *Universe {
 	return &Universe{}
+}
+
+func (u *Universe) ConstFor(c Const) Type {
+	for i, v := range u.consts {
+		if v == c {
+			return newType(ConstType, i, 0)
+		}
+	}
+	u.consts = append(u.consts, c)
+	return newType(ConstType, len(u.consts)-1, 0)
+}
+
+func (u *Universe) DeferredFor(sym string) Type {
+	for i, v := range u.deferreds {
+		if v.name == sym {
+			return newType(DeferredType, i, 0)
+		}
+	}
+	u.deferreds = append(u.deferreds, Deferred{uni: u, name: sym})
+	return newType(DeferredType, len(u.deferreds)-1, 0)
 }
 
 func (u *Universe) FuncFor(params []Type, ret Type) Type {
@@ -38,6 +60,20 @@ func (u *Universe) Basic(t Type) *Basic {
 	return &basicInfos[t.Index()]
 }
 
+func (u *Universe) Const(t Type) Const {
+	if t.Kind() != ConstType {
+		panic("not a const type")
+	}
+	return u.consts[t.Index()]
+}
+
+func (u *Universe) Deferred(t Type) *Deferred {
+	if t.Kind() != DeferredType {
+		panic("not a deferred type")
+	}
+	return &u.deferreds[t.Index()]
+}
+
 func (u *Universe) Func(t Type) *Func {
 	if t.Kind() != FuncType {
 		panic("not a func type")
@@ -54,6 +90,10 @@ func (u *Universe) StringOf(t Type) string {
 	switch t.Kind() {
 	case BasicType:
 		return prefix + u.Basic(t).String()
+	case ConstType:
+		return prefix + u.Const(t).String()
+	case DeferredType:
+		return prefix + u.Deferred(t).String()
 	case FuncType:
 		return prefix + u.Func(t).String()
 	default:
@@ -63,6 +103,9 @@ func (u *Universe) StringOf(t Type) string {
 
 func (u *Universe) Underlying(t Type) Type {
 	// todo: implement this
+	if t.Kind() == ConstType {
+		return u.Const(t).Underlying()
+	}
 	return t
 }
 

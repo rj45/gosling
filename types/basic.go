@@ -1,8 +1,10 @@
 package types
 
 const (
-	None Type = iota
+	Unknown Type = iota
+	None
 	Void
+	Control
 	Int
 	Bool
 	UntypedInt
@@ -22,6 +24,7 @@ type Basic struct {
 }
 
 var basicInfos = [...]Basic{
+	Unknown:    {"unknown", 0},
 	None:       {"none", 0},
 	Void:       {"void", 0},
 	Int:        {"int", isInteger},
