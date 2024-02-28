@@ -85,7 +85,7 @@ func (t *SoNTranslator) translateFuncDecl(node ast.NodeID) {
 
 	t.fn.Name = t.ast.NodeString(name)
 
-	t.fn.Type = t.translateType(node)
+	t.fn.Sig = t.translateType(node)
 
 	for _, child := range t.ast.Children(params) {
 		// todo: make nodes for params

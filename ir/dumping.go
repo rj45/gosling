@@ -34,7 +34,7 @@ func (fn *Function) Dump() string {
 }
 
 func (fn *Function) dump(w io.Writer) {
-	sig := fn.Types.Func(fn.Type)
+	sig := fn.Types.Func(fn.Sig)
 	params := make([]string, len(sig.ParamTypes()))
 	for i, typ := range sig.ParamTypes() {
 		params[i] = fn.Types.StringOf(typ)

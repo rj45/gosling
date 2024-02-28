@@ -9,114 +9,23 @@ import (
 	"github.com/rj45/gosling/types"
 )
 
-// OpID is the index of the Op in the graph's Ops array
-type OpID uint8
-
-const InvalidOp OpID = 0
-
-// NodeID is the index of the node in the graph
-type NodeID uint32
-
-const InvalidNode NodeID = 0
-
-// InputID is the index of the input in the inputs array
-type InputID uint32
-
-const InvalidInput InputID = 0
-
-type Node struct {
-	g  *Graph
-	id NodeID
-}
-
-func (n Node) ID() NodeID {
-	return n.id
-}
-
-func (n Node) Graph() *Graph {
-	return n.g
-}
-
-func (n Node) Op() Op {
-	return n.g.op(n.id)
-}
-
-func (n Node) Flags() uint8 {
-	return n.g.flags(n.id)
-}
-
-func (n Node) Type() types.Type {
-	return n.g.typ(n.id)
-}
-
-func (n Node) Token() token.Token {
-	return n.g.token(n.id)
-}
-
-func (n Node) NumInputs() int {
-	return n.g.numInputs(n.id)
-}
-
-func (n Node) Input(i int) Node {
-	return n.g.input(n.id, i)
-}
-
-func (n Node) UseHead() Use {
-	return n.g.useHead(n.id)
-}
-
-func (n Node) IsControlFlow() bool {
-	return n.Op().IsControlFlow()
-}
-
-func (n Node) IsDataFlow() bool {
-	return n.Op().IsDataFlow()
-}
-
-func (n Node) IsConstant() bool {
-	return n.Type().Kind() == types.ConstType
-}
-
-type Use struct {
-	g  *Graph
-	id InputID
-}
-
-func (u Use) User() Node {
-	return Node{u.g, u.g.uses[u.id].user}
-}
-
-func (u Use) Next() Use {
-	return Use{u.g, u.g.uses[u.id].nextUse}
-}
-
-func (u Use) Def() Node {
-	return Node{u.g, u.g.inputs[u.id]}
-}
-
-func (u Use) Head() Use {
-	return Use{u.g, u.g.useHeads[u.g.inputs[u.id]]}
-}
-
-type name struct {
-	name string
-	num  int
-}
-
+// Graph contains a Sea of Nodes. It is the top-level container for the IR.
+// Both control flow and data flow are represented as nodes in the graph.
+// The two flows sometimes intersect, such as at Phi nodes, or Return nodes.
 type Graph struct {
 	nodes []node // indexed by NodeID
 
 	// TODO: maybe include these in node?
 	types    []types.Type // indexed by NodeID
-	useHeads []InputID    // indexed by NodeID
+	useHeads []inputID    // indexed by NodeID
 
 	tokens []token.Token // indexed by NodeID
 
-	inputs []NodeID // indexed by InputID
-	uses   []use    // indexed by InputID
+	inputs []NodeID // indexed by inputID
+	uses   []use    // indexed by inputID
 
-	ops     []Op     // indexed by OpID
-	opNames []string // indexed by OpID
+	ops     []Op     // indexed by opID
+	opNames []string // indexed by opID
 
 	names       []name // indexed by NodeID
 	lastNameNum map[string]int
@@ -146,7 +55,7 @@ func (g *Graph) NewNodeWithIDs(op Op, typ types.Type, token token.Token, inputs 
 			found := true
 			for i, input := range inputs {
 
-				if g.inputs[g.nodes[id].firstInput+InputID(i)] != input {
+				if g.inputs[g.nodes[id].firstInput+inputID(i)] != input {
 					found = false
 					break
 				}
@@ -161,28 +70,28 @@ func (g *Graph) NewNodeWithIDs(op Op, typ types.Type, token token.Token, inputs 
 
 	g.types = append(g.types, typ)
 
-	opID := InvalidOp
+	nodeOpID := invalidOp
 	for i, o := range g.ops {
 		if o.Opcode() == op.Opcode() {
-			opID = OpID(i)
+			nodeOpID = opID(i)
 			break
 		}
 	}
-	if opID == InvalidOp {
-		opID = OpID(len(g.ops))
+	if nodeOpID == invalidOp {
+		nodeOpID = opID(len(g.ops))
 		g.ops = append(g.ops, op)
 		g.opNames = append(g.opNames, strings.ToLower(op.String()))
 	}
 
 	id := NodeID(len(g.nodes))
 	g.nodes = append(g.nodes, node{
-		op:         opID,
+		op:         nodeOpID,
 		flags:      0,
 		numInputs:  uint16(len(inputs)),
-		firstInput: InputID(len(g.inputs)),
+		firstInput: inputID(len(g.inputs)),
 	})
 	g.tokens = append(g.tokens, token)
-	g.useHeads = append(g.useHeads, InvalidInput)
+	g.useHeads = append(g.useHeads, invalidInput)
 
 	for _, input := range inputs {
 		g.inputs = append(g.inputs, input)
@@ -190,10 +99,10 @@ func (g *Graph) NewNodeWithIDs(op Op, typ types.Type, token token.Token, inputs 
 			user:    id,
 			nextUse: g.useHeads[input],
 		})
-		g.useHeads[input] = InputID(len(g.uses) - 1)
+		g.useHeads[input] = inputID(len(g.uses) - 1)
 	}
 
-	namestr := g.opNames[opID]
+	namestr := g.opNames[nodeOpID]
 	if g.lastNameNum == nil {
 		g.lastNameNum = make(map[string]int)
 	}
@@ -214,17 +123,32 @@ func (g *Graph) NewNode(op Op, typ types.Type, token token.Token, inputs ...Node
 	return Node{g, id}
 }
 
+// opID is the index of the Op in the graph's ops array
+type opID uint8
+
+const invalidOp opID = 0
+
+// inputID is the index of the input in the inputs array
+type inputID uint32
+
+const invalidInput inputID = 0
+
+type name struct {
+	name string
+	num  int
+}
+
 type node struct {
-	op    OpID
+	op    opID
 	flags uint8
 
 	numInputs  uint16
-	firstInput InputID
+	firstInput inputID
 }
 
 type use struct {
 	user    NodeID
-	nextUse InputID
+	nextUse inputID
 }
 
 func (g *Graph) op(id NodeID) Op {
@@ -251,7 +175,7 @@ func (g *Graph) input(id NodeID, i int) Node {
 	if i < 0 || i >= int(g.nodes[id].numInputs) {
 		panic("input index out of range")
 	}
-	return Node{g, g.inputs[g.nodes[id].firstInput+InputID(i)]}
+	return Node{g, g.inputs[g.nodes[id].firstInput+inputID(i)]}
 }
 
 func (g *Graph) useHead(id NodeID) Use {
@@ -265,28 +189,4 @@ func (g *Graph) reassignName(id NodeID, namestr string) {
 	}
 	g.lastNameNum[namestr]++
 	g.names[id] = name{namestr, g.lastNameNum[namestr]}
-}
-
-type Program struct {
-	Packages []Package
-
-	Types *types.Universe
-}
-
-type Package struct {
-	*Program
-
-	Funcs []Function
-}
-
-type Function struct {
-	Graph
-
-	*Package
-
-	Name string
-	Type types.Type
-
-	Start NodeID
-	End   NodeID
 }
