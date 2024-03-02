@@ -50,17 +50,19 @@ func (fn *Function) dump(w io.Writer) {
 }
 
 func (g *Graph) dump(w io.Writer, indent string, types *types.Universe) {
-	// TODO: do a post-order traversal, and then dump in reverse order
-	for i := range g.nodes {
-		if i == 0 {
-			continue
+	// TODO: schedule first then dump?
+	g.DCEIter()(func(node Node) bool {
+		if node.IsConstant() {
+			// skip constants, they will be emitted inline later
+			return true
 		}
-		g.dumpNode(w, NodeID(i), indent, types)
-	}
+		g.dumpNode(w, node.ID, indent, types)
+		return true
+	})
 }
 
 func (g *Graph) dumpNode(w io.Writer, id NodeID, indent string, types *types.Universe) {
-	name := g.names[id]
+	name := g.names[id.Index()]
 	namestr := name.name
 	if g.lastNameNum[name.name] > 1 {
 		namestr += fmt.Sprintf("%d", name.num)
@@ -72,10 +74,18 @@ func (g *Graph) dumpNode(w io.Writer, id NodeID, indent string, types *types.Uni
 
 	fmt.Fprintf(w, "%s$%s = %s", indent, namestr, g.op(id).String())
 	for i := 0; i < g.numInputs(id); i++ {
+		inp := g.input(id, i)
 		if i > 0 {
 			fmt.Fprint(w, ",")
 		}
-		name := g.names[g.input(id, i).ID()]
+
+		// print constants in-line to reduce clutter
+		if inp.IsConstant() {
+			fmt.Fprintf(w, " %s", types.StringOf(g.types[inp.ID.Index()]))
+			continue
+		}
+
+		name := g.names[inp.ID.Index()]
 		namestr := name.name
 		if g.lastNameNum[name.name] > 1 {
 			namestr += fmt.Sprintf("%d", name.num)
@@ -83,7 +93,7 @@ func (g *Graph) dumpNode(w io.Writer, id NodeID, indent string, types *types.Uni
 		fmt.Fprintf(w, " $%s", namestr)
 	}
 	if g.op(id).Opcode() == OpConst {
-		fmt.Fprintf(w, " %s", types.StringOf(g.types[id]))
+		fmt.Fprintf(w, " %s", types.StringOf(g.types[id.Index()]))
 	}
 	fmt.Fprintln(w)
 }

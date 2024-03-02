@@ -30,6 +30,7 @@ type SoNTranslator struct {
 
 func NewSoNTranslator(ast *ast.AST) *SoNTranslator {
 	prog := &Program{Types: types.NewUniverse()}
+	prog.Graph.Init(GlobalScope, nil, nil, &prog.Graph)
 	return &SoNTranslator{
 		ast:     ast,
 		program: prog,
@@ -45,6 +46,7 @@ func (t *SoNTranslator) errorf(node ast.NodeID, msg string, args ...interface{})
 func (t *SoNTranslator) Translate() *Program {
 	t.program.Packages = append(t.program.Packages, Package{Program: t.program})
 	t.pkg = &t.program.Packages[len(t.program.Packages)-1]
+	t.pkg.Graph.Init(PackageScope, nil, &t.pkg.Graph, &t.program.Graph)
 	t.translateRoot(t.ast.Root())
 	return t.program
 }
@@ -79,7 +81,7 @@ func (t *SoNTranslator) translateFuncDecl(node ast.NodeID) {
 	t.pkg.Funcs = append(t.pkg.Funcs, Function{Package: t.pkg})
 	t.fn = &t.pkg.Funcs[len(t.pkg.Funcs)-1]
 
-	t.fn.Init()
+	t.fn.Init(LocalScope, &t.fn.Graph, &t.pkg.Graph, &t.program.Graph)
 
 	name := t.ast.Child(node, ast.FuncDeclName)
 	params := t.ast.Child(node, ast.FuncDeclParams)
@@ -94,14 +96,14 @@ func (t *SoNTranslator) translateFuncDecl(node ast.NodeID) {
 		_ = child
 	}
 
-	t.fn.Start = t.fn.NewNodeWithIDs(OpStart, types.Void, t.ast.Token(node))
-	t.startScope(t.fn.Start)
+	t.fn.start = t.fn.NewNodeWithIDs(OpStart, types.Void, t.ast.Token(node))
+	t.startScope(t.fn.start)
 
 	for _, child := range t.ast.Children(body) {
 		t.translateStmt(child)
 	}
 
-	t.fn.End = t.endScope().control
+	t.fn.end = t.endScope().control
 }
 
 func (t *SoNTranslator) translateStmtList(node ast.NodeID) {
@@ -179,7 +181,7 @@ func (t *SoNTranslator) translateAssignStmt(node ast.NodeID) {
 
 	val := t.pop()
 
-	id := t.fn.NewNodeWithIDs(OpCopy, t.fn.typ(val), t.ast.Token(lhs), val)
+	id := t.fn.NewNodeWithIDs(OpCopy, types.Unknown, t.ast.Token(lhs), val)
 
 	t.fn.reassignName(id, name)
 

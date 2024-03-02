@@ -6,7 +6,7 @@ type Use struct {
 }
 
 func (u Use) User() Node {
-	return Node{u.g, u.g.uses[u.id].user}
+	return u.g.Node(u.g.uses[u.id].user)
 }
 
 func (u Use) Next() Use {
@@ -14,9 +14,9 @@ func (u Use) Next() Use {
 }
 
 func (u Use) Def() Node {
-	return Node{u.g, u.g.inputs[u.id]}
+	return u.g.Node(u.g.inputs[u.id])
 }
 
 func (u Use) Head() Use {
-	return Use{u.g, u.g.useHeads[u.g.inputs[u.id]]}
+	return Use{u.g, u.g.useHeads[u.g.inputs[u.id].Index()]}
 }

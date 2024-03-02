@@ -23,8 +23,7 @@ var tests = []struct {
 		ir: `
 			func main() int {
 				$start = Start
-				$const = Const 42
-				$return = Return $start, $const
+				$return = Return $start, 42
 			}
 		`,
 	},
@@ -39,8 +38,7 @@ var tests = []struct {
 		ir: `
 			func main() int {
 				$start = Start
-				$const = Const 42
-				$x = Copy $const
+				$x = Copy 42
 				$return = Return $start, $x
 			}
 		`,
@@ -55,14 +53,9 @@ var tests = []struct {
 		ir: `
 			func main() int {
 				$start = Start
-				$const1 = Const 1
-				$const2 = Const 2
-				$add = Add $const1, $const2
-				$const3 = Const 3
-				$const4 = Const 4
-				$mul = Mul $const3, $const4
-				$const5 = Const 5
-				$div = Div $mul, $const5
+				$add = Add 1, 2
+				$mul = Mul 3, 4
+				$div = Div $mul, 5
 				$sub = Sub $add, $div
 				$return = Return $start, $sub
 			}
@@ -78,8 +71,7 @@ var tests = []struct {
 		ir: `
 			func main() int {
 				$start = Start
-				$const = Const 42
-				$neg = Neg $const
+				$neg = Neg 42
 				$return = Return $start, $neg
 			}
 		`,
@@ -97,17 +89,14 @@ var tests = []struct {
 		ir: `
 			func main() int {
 				$start = Start
-				$const1 = Const true
 
-				$if = If $start, $const1
+				$if = If $start, true
 
 				$then = Then $if
-				$const2 = Const 1
-				$return1 = Return $then, $const2
+				$return1 = Return $then, 1
 
 				$region = Region $start, $return1
-				$const3 = Const 0
-				$return2 = Return $region, $const3
+				$return2 = Return $region, 0
 			}
 		`,
 	},
@@ -125,17 +114,14 @@ var tests = []struct {
 		ir: `
 			func main() int {
 				$start = Start
-				$const1 = Const true
 
-				$if = If $start, $const1
+				$if = If $start, true
 
 				$then = Then $if
-				$const2 = Const 1
-				$return1 = Return $then, $const2
+				$return1 = Return $then, 1
 
 				$else = Else $if
-				$const3 = Const 0
-				$return2 = Return $else, $const3
+				$return2 = Return $else, 0
 
 				$region = Region $return1, $return2
 			}
@@ -155,15 +141,12 @@ var tests = []struct {
 		ir: `
 			func main() int {
 				$start = Start
-				$const1 = Const 0
-				$x1 = Copy $const1
-				$const2 = Const true
+				$x1 = Copy 0
 
-				$if = If $start, $const2
+				$if = If $start, true
 
 				$then = Then $if
-				$const3 = Const 1
-				$x2 = Copy $const3
+				$x2 = Copy 1
 
 				$region = Region $start, $then
 				$x3 = Phi $region, $x1, $x2
