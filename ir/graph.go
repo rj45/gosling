@@ -3,6 +3,7 @@ package ir
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/rj45/gosling/assert"
@@ -39,6 +40,13 @@ type Graph struct {
 
 	// global value numbering -- essentially a cache for common sub-expression elimination
 	gvn map[uint32]NodeID
+
+	// dominator depth, indexed by NodeID
+	domDepth []uint32
+
+	// scheduled blocks for nodes
+	nodeBlocks []uint32
+	blockNodes [][]NodeID
 }
 
 // Init initializes the graph to a clean state, ensuring that invalid values are reserved.
@@ -295,5 +303,190 @@ func (g *Graph) BottomDFSIter() func(yield func(Node) bool) {
 	return func(yield func(Node) bool) {
 		visited := make([]bool, len(g.nodes))
 		g.visit(g.end, visited, yield)
+	}
+}
+
+func (g *Graph) ReversePostOrderIter() func(yield func(Node) bool) {
+	return func(yield func(Node) bool) {
+		// determine post order
+		var nodes []NodeID
+		g.BottomDFSIter()(func(node Node) bool {
+			nodes = append(nodes, node.ID)
+			return true
+		})
+
+		// iterate in reverse post order
+		for i := len(nodes) - 1; i >= 0; i-- {
+			if !yield(g.Node(nodes[i])) {
+				return
+			}
+		}
+	}
+}
+
+func (g *Graph) leastCommonDominator(lhs, rhs NodeID) NodeID {
+	if lhs == InvalidNode {
+		return rhs
+	}
+	if rhs == InvalidNode {
+		return lhs
+	}
+	for lhs != rhs {
+		comp := int32(g.findDominatorDepth(lhs)) - int32(g.findDominatorDepth(rhs))
+		if comp >= 0 {
+			lhs = g.immediateDominator(lhs)
+		} else if comp < 0 {
+			rhs = g.immediateDominator(rhs)
+		}
+	}
+	return lhs
+}
+
+func (g *Graph) immediateDominator(id NodeID) NodeID {
+	op := g.op(id)
+	if op == OpStart {
+		return InvalidNode
+	} else if op == OpRegion {
+		dom := InvalidNode
+		g.inputsIter(id)(func(_ int, input Node) bool {
+			if input.IsControlFlow() {
+				dom = g.leastCommonDominator(dom, input.ID)
+			}
+			return true
+		})
+		return dom
+	} else {
+		dom := InvalidNode
+		g.inputsIter(id)(func(_ int, input Node) bool {
+			if input.IsControlFlow() {
+				dom = input.ID
+				return false
+			}
+			return true
+		})
+		return dom
+	}
+}
+
+func (g *Graph) findDominatorDepth(id NodeID) uint32 {
+	if g.domDepth == nil {
+		g.domDepth = make([]uint32, len(g.nodes))
+	}
+	if g.domDepth != nil && g.domDepth[id.Index()] != 0 {
+		return g.domDepth[id.Index()]
+	}
+	depth := uint32(0)
+	op := g.op(id)
+	if !op.IsControlFlow() {
+		return 0
+	}
+	if op == OpStart {
+		depth = 0
+	} else if op == OpRegion {
+		g.inputsIter(id)(func(_ int, input Node) bool {
+			if input.IsControlFlow() {
+				depth = max(depth, g.findDominatorDepth(input.ID))
+			}
+			return true
+		})
+
+		depth++
+	} else {
+		depth = g.findDominatorDepth(g.immediateDominator(id)) + 1
+	}
+	g.domDepth[id.Index()] = depth
+	return depth
+}
+
+// DominatorDepth returns the depth of the dominator tree for the given node.
+func (g *Graph) DominatorDepth(id NodeID) uint32 {
+	return g.findDominatorDepth(id)
+}
+
+// schedule extracts the control instructions, uses dominator depth to sort them, then
+// determines where blocks start and end, and assigns nodes to blocks.
+func (g *Graph) Schedule() {
+	// extract the control instructions
+	var control []NodeID
+	g.Iter()(func(node Node) bool {
+		if node.IsControlFlow() {
+			control = append(control, node.ID)
+		}
+		return true
+	})
+
+	// sort the control instructions by dominator depth
+	sort.Slice(control, func(i, j int) bool {
+		return g.DominatorDepth(control[i]) < g.DominatorDepth(control[j])
+	})
+
+	// determine where blocks start and end
+	g.nodeBlocks = make([]uint32, len(g.nodes))
+	block := uint32(0)
+	inBlock := true
+	for _, id := range control {
+		if g.op(id).StartsBlock() {
+			if !inBlock {
+				block++
+			}
+			inBlock = true
+		} else if g.op(id).EndsBlock() {
+			inBlock = false
+		}
+
+		g.nodeBlocks[id.Index()] = block + 1 // 0 == invalid block
+	}
+
+	// determine post order
+	nodes := make([]NodeID, len(g.nodes)-1)
+	g.BottomDFSIter()(func(node Node) bool {
+		nodes = append(nodes, node.ID)
+		return true
+	})
+
+	// assign nodes to blocks
+	g.blockNodes = make([][]NodeID, block+1)
+	visited := make([]bool, len(g.nodes))
+	for i := len(nodes) - 1; i >= 0; i-- { // reverse post order
+		id := nodes[i]
+		g.inputsIter(id)(func(_ int, input Node) bool {
+			g.scheduleBlock(input.ID, visited)
+			return true
+		})
+	}
+}
+
+func (g *Graph) scheduleBlock(node NodeID, visited []bool) {
+	if visited[node.Index()] {
+		return
+	}
+	visited[node.Index()] = true
+
+	// ensure all inputs visited first, and determine the latest block
+	// where we can go
+	block := uint32(1)
+	g.inputsIter(node)(func(_ int, input Node) bool {
+		g.scheduleBlock(input.ID, visited)
+		block = max(block, g.nodeBlocks[input.ID.Index()])
+		return true
+	})
+
+	// add the node to the block
+	block--
+	if g.blockNodes[block] == nil {
+		g.blockNodes[block] = make([]NodeID, 0)
+	}
+	g.blockNodes[block] = append(g.blockNodes[block], node)
+}
+
+func (g *Graph) IterBlocks() func(yield func(block int, node Node) bool) {
+	return func(yield func(int, Node) bool) {
+		for block, nodes := range g.blockNodes {
+			for _, node := range nodes {
+				if !yield(block, g.Node(node)) {
+					return
+				}
+			}
+		}
 	}
 }
