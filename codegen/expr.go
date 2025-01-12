@@ -15,17 +15,12 @@ func (g *CodeGen) genIfExpr(node ast.NodeID) {
 	g.label++
 
 	g.genExpr(cond)
-	if els != ast.InvalidNode {
-		g.asm.JumpIf("then", "else", label)
-	} else {
-		g.asm.JumpIf("then", "endif", label)
-	}
-	g.asm.Label("then", label)
-	g.genStmt(then, false)
+	g.asm.JumpIfFalse("else", label)
+	g.genStmt(then)
 	g.asm.Jump("endif", label)
+	g.asm.Label("else", label)
 	if els != ast.InvalidNode {
-		g.asm.Label("else", label)
-		g.genStmt(els, false)
+		g.genStmt(els)
 	}
 	g.asm.Label("endif", label)
 }
@@ -81,7 +76,7 @@ func (g *CodeGen) genExpr(node ast.NodeID) {
 	case ast.IfExpr:
 		g.genIfExpr(node)
 	case ast.StmtList:
-		g.genStmtList(node, false)
+		g.genStmtList(node)
 	case ast.Literal:
 		g.asm.LoadInt(g.ast.NodeString(node))
 	case ast.Name:

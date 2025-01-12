@@ -1,11 +1,13 @@
 package vm
 
 import (
-	"log"
-
-	"github.com/rj45/gosling/ir"
+	"fmt"
+	"strconv"
 )
 
+// Asm is a simple assembler for the virtual machine.
+// It is used by the code generator to generate the
+// virtual machine instructions.
 type Asm struct {
 	Program []Instr
 
@@ -26,231 +28,112 @@ func (a *Asm) instr1(op Opcode, arg int) {
 	a.Program = append(a.Program, Instr(op)|Instr(arg)<<8)
 }
 
-func (a *Asm) Prologue(fn string, locals int) {
-	a.fn = "_" + fn
-	a.Label(a.fn)
+func (a *Asm) Prologue(name string, locals int) {
+	a.fn = "_" + name
+	a.Label(a.fn, 0)
 	a.instr1(Prologue, locals)
 }
 
-func (a *Asm) Epilogue() {
+func (a *Asm) WordSize() int {
+	return 1
 }
 
-func (a *Asm) Push(src ir.RegMask) {
-	if !src.HasReg(ir.R0) {
-		panic("src must be R0")
-	}
+func (a *Asm) Push() {
 	a.instr(Push)
 }
 
-func (a *Asm) Pop(dest ir.RegMask) {
-	if len(dest.Regs()) != 1 {
-		panic("dest must have one register")
-	}
-	a.instr1(Pop, int(dest.Pop()))
+func (a *Asm) Pop(reg int) {
+	a.instr1(Pop, reg)
 }
 
-func (a *Asm) LoadLocal(dest ir.RegMask, local int) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	a.instr1(LoadLocal, local)
+func (a *Asm) LoadLocal(offset int) {
+	a.instr1(LoadLocal, offset)
 }
 
-func (a *Asm) StoreLocal(dest ir.RegMask, local int) {
-	if !dest.HasReg(ir.RegID(local)) {
-		log.Panicf("dest must be r%d, was: %s", local, dest)
-	}
-	a.instr1(StoreLocal, local)
+func (a *Asm) StoreLocal(reg int) {
+	a.instr1(StoreLocal, reg)
 }
 
-func (a *Asm) Load(dest ir.RegMask, src ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src.HasReg(ir.R0) {
-		panic("src must be R0")
-	}
+func (a *Asm) Load() {
 	a.instr(Load)
 }
 
-func (a *Asm) Store(src ir.RegMask, addr ir.RegMask) {
-	if !src.HasReg(ir.R0) {
-		panic("src must be R0")
-	}
-	if !addr.HasReg(ir.R1) {
-		panic("addr must be R1")
-	}
+func (a *Asm) Store() {
 	a.instr(Store)
 }
 
-func (a *Asm) LoadInt(dest ir.RegMask, imm int64) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
+func (a *Asm) LoadInt(lit string) {
+	val, err := strconv.Atoi(lit)
+	if err != nil {
+		panic(err)
 	}
-	a.instr1(LoadInt, int(imm))
+	a.instr1(LoadInt, val)
 }
 
-func (a *Asm) LocalAddr(dest ir.RegMask, local int) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	a.instr1(LocalAddr, local)
+func (a *Asm) LocalAddr(offset int) {
+	a.instr1(LocalAddr, offset)
 }
 
-func (a *Asm) Add(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Add() {
 	a.instr(Add)
 }
 
-func (a *Asm) Sub(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Sub() {
 	a.instr(Sub)
 }
 
-func (a *Asm) Mul(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Mul() {
 	a.instr(Mul)
 }
 
-func (a *Asm) Div(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Div() {
 	a.instr(Div)
 }
 
-func (a *Asm) Neg(dest ir.RegMask, src ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src.HasReg(ir.R0) {
-		panic("src must be R0")
-	}
+func (a *Asm) Neg() {
 	a.instr(Neg)
 }
 
-func (a *Asm) Eq(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Eq() {
 	a.instr(Eq)
 }
 
-func (a *Asm) Ne(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Ne() {
 	a.instr(Ne)
 }
 
-func (a *Asm) Lt(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Lt() {
 	a.instr(Lt)
 }
 
-func (a *Asm) Le(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Le() {
 	a.instr(Le)
 }
 
-func (a *Asm) Gt(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Gt() {
 	a.instr(Gt)
 }
 
-func (a *Asm) Ge(dest ir.RegMask, src1 ir.RegMask, src2 ir.RegMask) {
-	if !dest.HasReg(ir.R0) {
-		panic("dest must be R0")
-	}
-	if !src1.HasReg(ir.R1) {
-		panic("src1 must be R1")
-	}
-	if !src2.HasReg(ir.R0) {
-		panic("src2 must be R0")
-	}
+func (a *Asm) Ge() {
 	a.instr(Ge)
 }
 
-func (a *Asm) Call(fn string) {
-	a.jump(Call, "_"+fn)
+func (a *Asm) Call(name string) {
+	a.jump(Call, "_"+name+"0")
 }
 
-func (a *Asm) If(test ir.RegMask, then string, els string) {
-	if !test.HasReg(ir.R0) {
-		panic("test must be R0")
-	}
-	a.jump(JumpIfFalse, els)
-	a.jump(Jump, then)
+func (a *Asm) JumpToEpilogue() {
+	a.jump(Jump, "epilogue"+a.fn+"0")
 }
 
-func (a *Asm) Jump(label string) {
-	a.jump(Jump, label)
+func (a *Asm) JumpIfFalse(label string, offset int) {
+	name := fmt.Sprintf("%s%d", label, offset)
+	a.jump(JumpIfFalse, name)
+}
+
+func (a *Asm) Jump(label string, offset int) {
+	name := fmt.Sprintf("%s%d", label, offset)
+	a.jump(Jump, name)
 }
 
 func (a *Asm) jump(op Opcode, label string) {
@@ -265,15 +148,16 @@ func (a *Asm) jump(op Opcode, label string) {
 	a.instr1(op, 0)
 }
 
-func (a *Asm) Label(label string) {
+func (a *Asm) Label(label string, offset int) {
+	name := fmt.Sprintf("%s%d", label, offset)
 	loc := len(a.Program)
 
 	// fixup any references to this label
-	if refs, found := a.refs[label]; found {
+	if refs, found := a.refs[name]; found {
 		for _, ref := range refs {
 			a.Program[ref] |= Instr(loc) << 8
 		}
-		delete(a.refs, label)
+		delete(a.refs, name)
 	}
 
 	if a.labels == nil {
@@ -281,10 +165,11 @@ func (a *Asm) Label(label string) {
 	}
 
 	// record the label for future references
-	a.labels[label] = loc
+	a.labels[name] = loc
 }
 
-func (a *Asm) Return() {
+func (a *Asm) Epilogue() {
+	a.Label("epilogue"+a.fn, 0)
 	if a.fn == "_main" {
 		a.instr(Exit)
 		return

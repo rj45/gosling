@@ -1,15 +1,14 @@
 package main_test
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 
 	"github.com/rj45/gosling/arch/aarch64"
+	"github.com/rj45/gosling/ast"
 	"github.com/rj45/gosling/compile"
-	"github.com/rj45/gosling/token"
 	"github.com/rj45/gosling/vm"
 )
 
@@ -334,7 +333,7 @@ func TestCodegenWithVirtualMachine(t *testing.T) {
 			if strings.Contains(tt.input, "main()") {
 				input = tt.input
 			}
-			file := token.NewFile("test.gos", []byte(input))
+			file := ast.NewFile("test.gos", []byte(input))
 			asm := vm.NewAsm()
 			errs := compile.Compile(file, asm)
 
@@ -363,7 +362,7 @@ func TestCodegenNativeAssembly(t *testing.T) {
 			if strings.Contains(tt.input, "main()") {
 				input = tt.input
 			}
-			file := token.NewFile("test.gos", []byte(input))
+			file := ast.NewFile("test.gos", []byte(input))
 
 			tmp, err := os.CreateTemp("", "gosling_*.s")
 			if err != nil {
@@ -371,7 +370,7 @@ func TestCodegenNativeAssembly(t *testing.T) {
 			}
 			defer os.Remove(tmp.Name())
 
-			asm := &aarch64.Assembler{Out: tmp}
+			asm := &aarch64.Assembly{Out: tmp}
 
 			errs := compile.Compile(file, asm)
 			if len(errs) > 0 {
@@ -385,11 +384,6 @@ func TestCodegenNativeAssembly(t *testing.T) {
 			err = cmd.Run()
 			defer os.Remove(tmp.Name() + ".out")
 			if err != nil {
-				buf, err := os.ReadFile(tmp.Name())
-				if err != nil {
-					t.Fatal(err)
-				}
-				fmt.Println(string(buf))
 				t.Errorf("Expected no error, but got %s", err)
 			}
 
