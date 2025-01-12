@@ -26,6 +26,8 @@ type SoNTranslator struct {
 
 	stack []NodeID
 	scope *scope
+
+	rets []NodeID
 }
 
 func NewSoNTranslator(ast *ast.AST) *SoNTranslator {
@@ -80,6 +82,7 @@ func (t *SoNTranslator) translateDecl(node ast.NodeID) {
 func (t *SoNTranslator) translateFuncDecl(node ast.NodeID) {
 	t.pkg.Funcs = append(t.pkg.Funcs, Function{Package: t.pkg})
 	t.fn = &t.pkg.Funcs[len(t.pkg.Funcs)-1]
+	t.rets = t.rets[:0]
 
 	t.fn.Init(LocalScope, &t.fn.Graph, &t.pkg.Graph, &t.program.Graph)
 
@@ -102,6 +105,17 @@ func (t *SoNTranslator) translateFuncDecl(node ast.NodeID) {
 	for _, child := range t.ast.Children(body) {
 		t.translateStmt(child)
 	}
+
+	// ensure there's at least one return statement
+	if len(t.rets) == 0 {
+		if t.types.Func(t.fn.Sig).ReturnType() != types.Void {
+			t.errorf(node, "missing return statement")
+		}
+		t.scope.control = t.fn.NewNodeWithIDs(OpReturn, types.Void, t.ast.Token(node))
+		t.rets = append(t.rets, t.scope.control)
+	}
+
+	t.scope.control = t.fn.NewNodeWithIDs(OpStop, types.Void, t.ast.Token(node), t.rets...)
 
 	t.fn.end = t.endScope().control
 }
@@ -165,6 +179,7 @@ func (t *SoNTranslator) translateReturnStmt(node ast.NodeID) {
 		rets = append(rets, t.pop())
 	}
 	t.scope.control = t.fn.NewNodeWithIDs(OpReturn, types.Void, t.ast.Token(node), rets...)
+	t.rets = append(t.rets, t.scope.control)
 }
 
 func (t *SoNTranslator) translateAssignStmt(node ast.NodeID) {
@@ -342,27 +357,19 @@ func (t *SoNTranslator) translateIfExpr(node ast.NodeID) {
 	ifNode := t.fn.NewNodeWithIDs(OpIf, types.Unknown, t.ast.Token(node), t.scope.control, condNode)
 	thenStart := t.fn.NewNodeWithIDs(OpThen, types.Unknown, t.ast.Token(node), ifNode)
 
+	elseScope := t.scope
 	t.startScope(thenStart)
 	t.translateStmt(then)
-	thenEnd := t.scope.control
 	thenScope := t.endScope()
 
-	var elseEnd NodeID
-	var elseScope *scope
+	elseStart := t.fn.NewNodeWithIDs(OpElse, types.Unknown, t.ast.Token(node), ifNode)
 	if els != ast.InvalidNode {
-		elseStart := t.fn.NewNodeWithIDs(OpElse, types.Unknown, t.ast.Token(node), ifNode)
 		t.startScope(elseStart)
 		t.translateStmt(els)
-		elseEnd = t.scope.control
 		elseScope = t.endScope()
 	}
 
-	var region NodeID
-	if els == ast.InvalidNode {
-		region = t.fn.NewNodeWithIDs(OpRegion, types.Unknown, t.ast.Token(node), t.scope.control, thenEnd)
-	} else {
-		region = t.fn.NewNodeWithIDs(OpRegion, types.Unknown, t.ast.Token(node), thenEnd, elseEnd)
-	}
+	region := t.fn.NewNodeWithIDs(OpRegion, types.Unknown, t.ast.Token(node), thenStart, elseStart)
 
 	var phiArgs map[string][]NodeID
 	for _, scope := range []*scope{thenScope, elseScope} {

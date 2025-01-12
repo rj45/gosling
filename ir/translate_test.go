@@ -24,6 +24,8 @@ var tests = []struct {
 			func main() int {
 				$start = Start
 				$return = Return $start, 42
+
+				$stop = Stop $return
 			}
 		`,
 	},
@@ -40,6 +42,8 @@ var tests = []struct {
 				$start = Start
 				$x = Copy 42
 				$return = Return $start, $x
+
+				$stop = Stop $return
 			}
 		`,
 	},
@@ -58,6 +62,8 @@ var tests = []struct {
 				$div = Div $mul, 5
 				$sub = Sub $add, $div
 				$return = Return $start, $sub
+
+				$stop = Stop $return
 			}
 		`,
 	},
@@ -73,6 +79,8 @@ var tests = []struct {
 				$start = Start
 				$neg = Neg 42
 				$return = Return $start, $neg
+
+				$stop = Stop $return
 			}
 		`,
 	},
@@ -95,8 +103,12 @@ var tests = []struct {
 				$then = Then $if
 				$return1 = Return $then, 1
 
-				$region = Region $start, $return1
+				$else = Else $if
+
+				$region = Region $then, $else
 				$return2 = Return $region, 0
+
+				$stop = Stop $return1, $return2
 			}
 		`,
 	},
@@ -123,7 +135,7 @@ var tests = []struct {
 				$else = Else $if
 				$return2 = Return $else, 0
 
-				$region = Region $return1, $return2
+				$stop = Stop $return1, $return2
 			}
 		`,
 	},
@@ -148,9 +160,13 @@ var tests = []struct {
 				$then = Then $if
 				$x2 = Copy 1
 
-				$region = Region $start, $then
+				$else = Else $if
+
+				$region = Region $then, $else
 				$x3 = Phi $region, $x1, $x2
 				$return = Return $region, $x3
+
+				$stop = Stop $return
 			}
 		`,
 	},

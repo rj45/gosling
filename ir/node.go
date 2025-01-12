@@ -1,6 +1,8 @@
 package ir
 
 import (
+	"fmt"
+
 	"github.com/rj45/gosling/assert"
 	"github.com/rj45/gosling/token"
 	"github.com/rj45/gosling/types"
@@ -108,4 +110,13 @@ func (n Node) IsDataFlow() bool {
 
 func (n Node) IsConstant() bool {
 	return n.Type().Kind() == types.ConstType
+}
+
+func (n Node) Name() string {
+	name := n.Graph().names[n.ID.Index()]
+	namestr := name.name
+	if n.Graph().lastNameNum[name.name] > 1 {
+		namestr += fmt.Sprintf("%d", name.num)
+	}
+	return namestr
 }
