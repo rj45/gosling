@@ -2,30 +2,30 @@ package codegen
 
 import "github.com/rj45/gosling/ast"
 
-func (g *CodeGen) genStmtList(node ast.NodeID, last bool) {
+func (g *CodeGen) genStmtList(node ast.NodeID) {
 	g.symtab.EnterScope(node)
 	defer g.symtab.LeaveScope()
 
 	children := g.ast.Children(node)
-	for i, child := range children {
-		g.genStmt(child, last && (i == len(children)-1))
+	for _, child := range children {
+		g.genStmt(child)
 	}
 }
 
-func (g *CodeGen) genStmt(node ast.NodeID, last bool) {
+func (g *CodeGen) genStmt(node ast.NodeID) {
 	switch g.ast.Kind(node) {
 	case ast.ExprStmt:
 		g.genExpr(g.ast.Child(node, ast.ExprStmtExpr))
 	case ast.AssignStmt:
 		g.genAssignStmt(node)
 	case ast.ReturnStmt:
-		g.genReturnStmt(node, last)
+		g.genReturnStmt(node)
 	case ast.IfExpr:
 		g.genIfExpr(node)
 	case ast.ForStmt:
 		g.genForStmt(node)
 	case ast.StmtList:
-		g.genStmtList(node, last)
+		g.genStmtList(node)
 	case ast.EmptyStmt:
 		// do nothing
 	default:
@@ -41,18 +41,11 @@ func (g *CodeGen) genAssignStmt(node ast.NodeID) {
 	g.asm.Store()
 }
 
-func (g *CodeGen) genReturnStmt(node ast.NodeID, last bool) {
+func (g *CodeGen) genReturnStmt(node ast.NodeID) {
 	for _, child := range g.ast.Children(node) {
 		g.genExpr(child)
 	}
 	g.asm.JumpToEpilogue()
-	if last {
-		return
-	}
-
-	// make sure a new block is created after the return
-	g.label++
-	g.asm.Label("post.return", g.label)
 }
 
 func (g *CodeGen) genForStmt(node ast.NodeID) {
@@ -65,17 +58,16 @@ func (g *CodeGen) genForStmt(node ast.NodeID) {
 	g.label++
 
 	if init != ast.InvalidNode {
-		g.genStmt(init, false)
+		g.genStmt(init)
 	}
 	g.asm.Label("loop", label)
 	if cond != ast.InvalidNode {
 		g.genExpr(g.ast.Child(cond, ast.ExprStmtExpr))
-		g.asm.JumpIf("loopbody", "endloop", label)
-		g.asm.Label("loopbody", label)
+		g.asm.JumpIfFalse("endloop", label)
 	}
-	g.genStmt(body, false)
+	g.genStmt(body)
 	if post != ast.InvalidNode {
-		g.genStmt(post, false)
+		g.genStmt(post)
 	}
 	g.asm.Jump("loop", label)
 	g.asm.Label("endloop", label)
